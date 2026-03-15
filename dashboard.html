@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>Baby Tracker — Dashboard</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.4rem;
+    }
+
+    .logout-btn {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    /* Summary cards grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-muted);
+      transform: translateY(-1px);
+    }
+
+    .summary-card .card-icon {
+      font-size: 1.5rem;
+    }
+
+    .summary-card .card-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .summary-card .card-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .summary-card .card-detail {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Module accent borders */
+    .summary-card[data-module="feed"] { border-left: 3px solid var(--accent-feed); }
+    .summary-card[data-module="nappy"] { border-left: 3px solid var(--accent-nappy); }
+    .summary-card[data-module="sleep"] { border-left: 3px solid var(--accent-sleep); }
+    .summary-card[data-module="weight"] { border-left: 3px solid var(--accent-weight); }
+
+    .welcome-section {
+      text-align: center;
+      padding: 20px 0 8px;
+      margin-bottom: 12px;
+    }
+
+    .welcome-section .baby-icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .welcome-section .greeting {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    /* Recent activity */
+    .recent-section {
+      margin-top: 8px;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="dashboard-header">
+      <h1>👶 Baby Tracker</h1>
+      <button class="logout-btn" onclick="signOut()">Sign Out</button>
+    </div>
+
+    <div class="welcome-section" id="welcome">
+      <span class="greeting" id="greeting-text">Loading...</span>
+    </div>
+
+    <!-- Summary cards — values populated by JS -->
+    <div class="summary-grid">
+      <a href="feeding.html" class="summary-card" data-module="feed">
+        <span class="card-icon">🍼</span>
+        <span class="card-label">Last Feed</span>
+        <span class="card-value" id="feed-value">—</span>
+        <span class="card-detail" id="feed-detail"></span>
+      </a>
+      <a href="nappy.html" class="summary-card" data-module="nappy">
+        <span class="card-icon">💩</span>
+        <span class="card-label">Nappies Today</span>
+        <span class="card-value" id="nappy-value">—</span>
+        <span class="card-detail" id="nappy-detail"></span>
+      </a>
+      <a href="sleep.html" class="summary-card" data-module="sleep">
+        <span class="card-icon">😴</span>
+        <span class="card-label">Last Sleep</span>
+        <span class="card-value" id="sleep-value">—</span>
+        <span class="card-detail" id="sleep-detail"></span>
+      </a>
+      <a href="weight.html" class="summary-card" data-module="weight">
+        <span class="card-icon">⚖️</span>
+        <span class="card-label">Latest Weight</span>
+        <span class="card-value" id="weight-value">—</span>
+        <span class="card-detail" id="weight-detail"></span>
+      </a>
+    </div>
+
+    <div class="recent-section">
+      <div class="section-title">Quick Actions</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a href="feeding.html" class="btn btn-secondary" style="justify-content: flex-start;">🍼 &nbsp;Log a feed</a>
+        <a href="nappy.html" class="btn btn-secondary" style="justify-content: flex-start;">💩 &nbsp;Log a nappy change</a>
+        <a href="sleep.html" class="btn btn-secondary" style="justify-content: flex-start;">😴 &nbsp;Start sleep timer</a>
+        <a href="weight.html" class="btn btn-secondary" style="justify-content: flex-start;">⚖️ &nbsp;Record weight</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="shared.js"></script>
+  <script>
+    (async () => {
+      const session = await requireAuth();
+      if (!session) return;
+
+      renderNav('dashboard');
+      updateGreeting();
+      loadSummary();
+    })();
+
+    function updateGreeting() {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+
+      document.getElementById('greeting-text').textContent =
+        `${greeting} — here's today's overview`;
+    }
+
+    async function loadSummary() {
+      const userId = await getUserId();
+      const todayStart = todayStr() + 'T00:00:00';
+
+      // Last feed
+      try {
+        const { data: feeds } = await supabase
+          .from('feedings')
+          .select('*')
+          .eq('user_id', userId)
+          .order('start_time', { ascending: false })
+          .limit(1);
+
+        if (feeds && feeds.length > 0) {
+          const f = feeds[0];
+          const duration = f.end_time ? formatDuration(calcDuration(f.start_time, f.end_time)) : 'In progress';
+          document.getElementById('feed-value').textContent = duration;
+          document.getElementById('feed-detail').textContent = formatDateTime(f.start_time);
+        }
+      } catch(e) { /* table may not exist yet */ }
+
+      // Nappies today
+      try {
+        const { data: nappies, count } = await supabase
+          .from('nappies')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userId)
+          .gte('changed_at', todayStart);
+
+        document.getElementById('nappy-value').textContent = (count || 0).toString();
+        if (nappies && nappies.length > 0) {
+          document.getElementById('nappy-detail').textContent =
+            `Last: ${formatTime(nappies[0].changed_at)}`;
+        }
+      } catch(e) {}
+
+      // Last sleep
+      try {
+        const { data: sleeps } = await supabase
+          .from('sleeps')
+          .select('*')
+          .eq('user_id', userId)
+          .order('start_time', { ascending: false })
+          .limit(1);
+
+        if (sleeps && sleeps.length > 0) {
+          const s = sleeps[0];
+          if (s.end_time) {
+            document.getElementById('sleep-value').textContent =
+              formatDuration(calcDuration(s.start_time, s.end_time));
+          } else {
+            document.getElementById('sleep-value').textContent = '💤 Sleeping...';
+          }
+          document.getElementById('sleep-detail').textContent = formatDateTime(s.start_time);
+        }
+      } catch(e) {}
+
+      // Latest weight
+      try {
+        const { data: weights } = await supabase
+          .from('weights')
+          .select('*')
+          .eq('user_id', userId)
+          .order('measured_at', { ascending: false })
+          .limit(1);
+
+        if (weights && weights.length > 0) {
+          const w = weights[0];
+          document.getElementById('weight-value').textContent = `${w.weight_kg} kg`;
+          document.getElementById('weight-detail').textContent = formatDate(w.measured_at);
+        }
+      } catch(e) {}
+    }
+  </script>
+</body>
+</html>
