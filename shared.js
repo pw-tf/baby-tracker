@@ -15,13 +15,34 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ---- Auth Guard ----
 // Call this on every protected page. Redirects to login if not authenticated.
-async function requireAuth() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.href = 'login.html';
-    return null;
-  }
-  return session;
+// Uses onAuthStateChange to wait for the session to be resolved properly.
+function requireAuth() {
+  return new Promise((resolve) => {
+    // First check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        resolve(session);
+      } else {
+        // Listen for auth state in case session is still loading
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          subscription.unsubscribe();
+          if (session) {
+            resolve(session);
+          } else {
+            window.location.href = 'login.html';
+            resolve(null);
+          }
+        });
+
+        // Timeout — if no auth state after 2s, redirect to login
+        setTimeout(() => {
+          subscription.unsubscribe();
+          window.location.href = 'login.html';
+          resolve(null);
+        }, 2000);
+      }
+    });
+  });
 }
 
 // Check if user is logged in (for login page — redirect away if already authenticated)

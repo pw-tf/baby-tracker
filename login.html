@@ -171,8 +171,23 @@
         return;
       }
 
-      // Success — redirect
-      window.location.href = 'dashboard.html';
+      // Verify session is stored before redirecting
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = 'dashboard.html';
+      } else {
+        // Wait briefly for session to propagate
+        setTimeout(async () => {
+          const { data: { session: s2 } } = await supabase.auth.getSession();
+          if (s2) {
+            window.location.href = 'dashboard.html';
+          } else {
+            showError('Login succeeded but session failed to persist. Check browser settings allow localStorage.');
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+          }
+        }, 500);
+      }
     });
 
     function showError(msg) {
