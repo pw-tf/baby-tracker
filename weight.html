@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1117">
+    <title>Baby Tracker — Weight</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-bar">
+            <a href="dashboard.html" class="logo">
+                <span class="logo-icon">⚖️</span>
+                Weight
+            </a>
+            <button class="btn-logout" onclick="signOut()">Sign Out</button>
+        </div>
+
+        <!-- Log Form -->
+        <div class="card">
+            <!-- Unit Toggle -->
+            <div style="margin-bottom: 16px;">
+                <label class="form-label">Unit</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="unit-kg-btn" data-unit="kg" onclick="setUnit('kg')">kg</button>
+                    <button class="toggle-btn" id="unit-lbs-btn" data-unit="lbs" onclick="setUnit('lbs')">lbs</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="weight-input" id="weight-label">Weight (kg)</label>
+                <input type="number" id="weight-input" class="form-input" placeholder="e.g. 3.50" min="0" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="measured-at">Date</label>
+                <input type="datetime-local" id="measured-at" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveEntry()">Save Entry</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Growth Chart</span>
+            </div>
+            <div class="date-range-bar" id="date-range-bar">
+                <button class="range-btn" data-range="30d">30 days</button>
+                <button class="range-btn" data-range="90d">90 days</button>
+                <button class="range-btn active" data-range="all">All time</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="weight-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="entry-list">
+            <div class="entry-list-header">
+                <span class="entry-list-title">Weight Log</span>
+            </div>
+            <div id="entry-list-container">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+        <div class="card" style="max-width:320px; margin:auto; text-align:center;">
+            <p style="margin-bottom:16px;">Delete this weight entry?</p>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
+                <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="main-nav"></nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        Chart.defaults.color = '#9295a5';
+        Chart.defaults.borderColor = '#2e3142';
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+        let weightUnit = 'kg';
+        let currentRange = 'all';
+        let weightChart = null;
+        let deleteId = null;
+
+        (async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            initNav('weight.html');
+            prefillDate();
+            setupRangeButtons();
+            await loadPreferences();
+            await loadEntries();
+            await loadChart();
+        })();
+
+        function prefillDate() {
+            document.getElementById('measured-at').value = toDatetimeLocal(new Date());
+        }
+
+        // --- Unit toggle ---
+        async function setUnit(unit) {
+            weightUnit = unit;
+            document.querySelectorAll('[data-unit]').forEach(b => b.classList.toggle('active', b.dataset.unit === unit));
+            document.getElementById('weight-label').textContent = `Weight (${unit})`;
+            document.getElementById('weight-input').placeholder = unit === 'kg' ? 'e.g. 3.50' : 'e.g. 7.72';
+
+            // Persist preference
+            const userId = await getUserId();
+            const { data: existing } = await sb
+                .from('user_preferences')
+                .select('id')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (existing) {
+                await sb.from('user_preferences')
+                    .update({ weight_unit: unit, updated_at: new Date().toISOString() })
+                    .eq('user_id', userId);
+            } else {
+                await sb.from('user_preferences')
+                    .insert({ user_id: userId, weight_unit: unit });
+            }
+
+            // Re-render with new unit
+            await loadEntries();
+            await loadChart();
+        }
+
+        async function loadPreferences() {
+            const userId = await getUserId();
+            const { data } = await sb
+                .from('user_preferences')
+                .select('weight_unit')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (data && data.weight_unit) {
+                weightUnit = data.weight_unit;
+                document.querySelectorAll('[data-unit]').forEach(b => b.classList.toggle('active', b.dataset.unit === weightUnit));
+                document.getElementById('weight-label').textContent = `Weight (${weightUnit})`;
+                document.getElementById('weight-input').placeholder = weightUnit === 'kg' ? 'e.g. 3.50' : 'e.g. 7.72';
+            }
+        }
+
+        // --- Save ---
+        async function saveEntry() {
+            const userId = await getUserId();
+            const weightVal = parseFloat(document.getElementById('weight-input').value);
+            const measuredAt = document.getElementById('measured-at').value;
+
+            if (!weightVal || weightVal <= 0) {
+                showToast('Please enter a valid weight.', 'error');
+                return;
+            }
+            if (!measuredAt) {
+                showToast('Please set a date.', 'error');
+                return;
+            }
+
+            // Convert to kg for storage
+            const weightKg = weightUnit === 'lbs' ? weightVal / 2.20462 : weightVal;
+
+            const entry = {
+                user_id: userId,
+                weight_kg: Math.round(weightKg * 1000) / 1000,
+                measured_at: new Date(measuredAt).toISOString(),
+                notes: document.getElementById('notes').value.trim() || null,
+            };
+
+            const { error } = await sb.from('weights').insert(entry);
+            if (error) {
+                showToast('Error saving: ' + error.message, 'error');
+                return;
+            }
+
+            showToast('Weight logged!');
+            document.getElementById('weight-input').value = '';
+            document.getElementById('notes').value = '';
+            prefillDate();
+            await loadEntries();
+            await loadChart();
+        }
+
+        // --- Load entries ---
+        async function loadEntries() {
+            const userId = await getUserId();
+            const { data, error } = await sb
+                .from('weights')
+                .select('*')
+                .eq('user_id', userId)
+                .order('measured_at', { ascending: false })
+                .limit(30);
+
+            const container = document.getElementById('entry-list-container');
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚖️</div>
+                        <div class="empty-state-text">No weight entries yet</div>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = data.map((entry, i) => {
+                const displayWeight = weightUnit === 'lbs'
+                    ? (entry.weight_kg * 2.20462).toFixed(2) + ' lbs'
+                    : Number(entry.weight_kg).toFixed(2) + ' kg';
+
+                // Calculate change from previous entry
+                let changeText = '';
+                if (i < data.length - 1) {
+                    const prev = data[i + 1]; // data is desc, so i+1 is older
+                    const diff = entry.weight_kg - prev.weight_kg;
+                    const diffDisplay = weightUnit === 'lbs'
+                        ? (diff * 2.20462).toFixed(2)
+                        : diff.toFixed(2);
+                    if (diff > 0) changeText = `<span style="color: var(--success);">+${diffDisplay}</span>`;
+                    else if (diff < 0) changeText = `<span style="color: var(--danger);">${diffDisplay}</span>`;
+                    else changeText = `<span style="color: var(--text-muted);">±0</span>`;
+                }
+
+                const notes = entry.notes ? ` · ${entry.notes}` : '';
+
+                return `
+                    <div class="entry-item">
+                        <div class="entry-icon">⚖️</div>
+                        <div class="entry-content">
+                            <div class="entry-title">${displayWeight} ${changeText}</div>
+                            <div class="entry-meta">${formatDate(entry.measured_at)}${notes}</div>
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}')" title="Delete">🗑</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // --- Delete ---
+        function confirmDelete(id) {
+            deleteId = id;
+            document.getElementById('delete-modal').style.display = 'flex';
+            document.getElementById('confirm-delete-btn').onclick = async () => {
+                const { error } = await sb.from('weights').delete().eq('id', deleteId);
+                if (error) {
+                    showToast('Error deleting: ' + error.message, 'error');
+                } else {
+                    showToast('Entry deleted');
+                }
+                closeDeleteModal();
+                await loadEntries();
+                await loadChart();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+            deleteId = null;
+        }
+
+        // --- Chart ---
+        function setupRangeButtons() {
+            document.getElementById('date-range-bar').addEventListener('click', (e) => {
+                const btn = e.target.closest('.range-btn');
+                if (!btn) return;
+                document.querySelectorAll('#date-range-bar .range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = btn.dataset.range;
+                loadChart();
+            });
+        }
+
+        async function loadChart() {
+            const userId = await getUserId();
+
+            let query = sb
+                .from('weights')
+                .select('weight_kg, measured_at')
+                .eq('user_id', userId)
+                .order('measured_at', { ascending: true });
+
+            if (currentRange !== 'all') {
+                const { start, end } = getDateRange(currentRange);
+                query = query.gte('measured_at', start).lte('measured_at', end);
+            }
+
+            const { data } = await query;
+            const entries = data || [];
+
+            const labels = entries.map(e => formatDate(e.measured_at));
+            const chartData = entries.map(e => {
+                return weightUnit === 'lbs'
+                    ? Math.round(e.weight_kg * 2.20462 * 100) / 100
+                    : Math.round(e.weight_kg * 100) / 100;
+            });
+
+            if (weightChart) weightChart.destroy();
+            weightChart = new Chart(document.getElementById('weight-chart'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: weightUnit,
+                        data: chartData,
+                        borderColor: '#6c63ff',
+                        backgroundColor: 'rgba(108, 99, 255, 0.15)',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#6c63ff',
+                        pointBorderColor: '#1e2029',
+                        pointBorderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e2029',
+                            borderColor: '#2e3142',
+                            borderWidth: 1,
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (ctx) => `${ctx.parsed.y} ${weightUnit}`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxRotation: 45, font: { size: 11 }, maxTicksLimit: 12 },
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#2e3142' },
+                            title: { display: true, text: weightUnit, font: { size: 12 } },
+                            ticks: { font: { size: 11 } },
+                        },
+                    },
+                },
+            });
+        }
+    </script>
+</body>
+</html>
