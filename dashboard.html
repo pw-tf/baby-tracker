@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1117">
+    <title>Baby Tracker — Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-bar">
+            <a href="dashboard.html" class="logo">
+                <span class="logo-icon">👶</span>
+                Baby Tracker
+            </a>
+            <button class="btn-logout" onclick="signOut()">Sign Out</button>
+        </div>
+
+        <!-- Date Range -->
+        <div class="date-range-bar" id="date-range-bar">
+            <button class="range-btn" data-range="24h">24h</button>
+            <button class="range-btn active" data-range="7d">7 days</button>
+            <button class="range-btn" data-range="14d">14 days</button>
+            <button class="range-btn" data-range="30d">30 days</button>
+            <button class="range-btn" data-range="90d">90 days</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summary-grid">
+            <a href="feeding.html" class="summary-card">
+                <div class="summary-icon">🍼</div>
+                <div class="summary-label">Feedings</div>
+                <div class="summary-value" id="sum-feedings">—</div>
+                <div class="summary-detail" id="sum-feedings-detail"></div>
+            </a>
+            <a href="nappy.html" class="summary-card">
+                <div class="summary-icon">👶</div>
+                <div class="summary-label">Nappies</div>
+                <div class="summary-value" id="sum-nappies">—</div>
+                <div class="summary-detail" id="sum-nappies-detail"></div>
+            </a>
+            <a href="sleep.html" class="summary-card">
+                <div class="summary-icon">😴</div>
+                <div class="summary-label">Sleep</div>
+                <div class="summary-value" id="sum-sleep">—</div>
+                <div class="summary-detail" id="sum-sleep-detail"></div>
+            </a>
+            <a href="weight.html" class="summary-card">
+                <div class="summary-icon">⚖️</div>
+                <div class="summary-label">Weight</div>
+                <div class="summary-value" id="sum-weight">—</div>
+                <div class="summary-detail" id="sum-weight-detail"></div>
+            </a>
+        </div>
+
+        <!-- Feeding Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Feeding Frequency</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="feeding-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Nappy Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Nappy Frequency</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="nappy-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sleep Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Sleep Duration</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="sleep-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Weight Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Weight Over Time</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="weight-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="main-nav"></nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Chart.js global config for dark mode
+        Chart.defaults.color = '#9295a5';
+        Chart.defaults.borderColor = '#2e3142';
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+        let feedingChart, nappyChart, sleepChart, weightChart;
+        let currentRange = '7d';
+        let weightUnit = 'kg';
+
+        (async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            initNav('dashboard.html');
+            await loadPreferences();
+            await loadDashboard();
+            setupRangeButtons();
+        })();
+
+        async function loadPreferences() {
+            const userId = await getUserId();
+            const { data } = await supabase
+                .from('user_preferences')
+                .select('weight_unit')
+                .eq('user_id', userId)
+                .single();
+            if (data) weightUnit = data.weight_unit;
+        }
+
+        function setupRangeButtons() {
+            document.getElementById('date-range-bar').addEventListener('click', (e) => {
+                const btn = e.target.closest('.range-btn');
+                if (!btn) return;
+                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = btn.dataset.range;
+                loadDashboard();
+            });
+        }
+
+        async function loadDashboard() {
+            const userId = await getUserId();
+            const { start, end } = getDateRange(currentRange);
+
+            const [feedings, nappies, sleeps, weights] = await Promise.all([
+                supabase.from('feedings').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
+                supabase.from('nappies').select('*').eq('user_id', userId).gte('changed_at', start).lte('changed_at', end).order('changed_at', { ascending: true }),
+                supabase.from('sleeps').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
+                supabase.from('weights').select('*').eq('user_id', userId).gte('measured_at', start).lte('measured_at', end).order('measured_at', { ascending: true }),
+            ]);
+
+            updateSummaryCards(feedings.data || [], nappies.data || [], sleeps.data || [], weights.data || []);
+            updateFeedingChart(feedings.data || []);
+            updateNappyChart(nappies.data || []);
+            updateSleepChart(sleeps.data || []);
+            updateWeightChart(weights.data || []);
+        }
+
+        function updateSummaryCards(feedings, nappies, sleeps, weights) {
+            // Feedings
+            document.getElementById('sum-feedings').textContent = feedings.length;
+            const lastFeed = feedings[feedings.length - 1];
+            document.getElementById('sum-feedings-detail').textContent = lastFeed
+                ? `Last: ${formatTime(lastFeed.start_time)}`
+                : 'No data';
+
+            // Nappies
+            document.getElementById('sum-nappies').textContent = nappies.length;
+            const wetCount = nappies.filter(n => n.nappy_type === 'wet' || n.nappy_type === 'both').length;
+            const pooCount = nappies.filter(n => n.nappy_type === 'poo' || n.nappy_type === 'both').length;
+            document.getElementById('sum-nappies-detail').textContent = nappies.length > 0
+                ? `${wetCount} wet · ${pooCount} poo`
+                : 'No data';
+
+            // Sleep
+            const totalSleepMs = sleeps.reduce((acc, s) => {
+                if (s.end_time) return acc + durationBetween(s.start_time, s.end_time);
+                return acc;
+            }, 0);
+            const avgSleepMs = sleeps.length > 0 ? totalSleepMs / getDayCount() : 0;
+            document.getElementById('sum-sleep').textContent = formatDuration(avgSleepMs);
+            document.getElementById('sum-sleep-detail').textContent = sleeps.length > 0
+                ? `avg/day · ${sleeps.length} sessions`
+                : 'No data';
+
+            // Weight
+            const latestWeight = weights[weights.length - 1];
+            if (latestWeight) {
+                const displayWeight = weightUnit === 'lbs'
+                    ? (latestWeight.weight_kg * 2.20462).toFixed(1) + ' lbs'
+                    : Number(latestWeight.weight_kg).toFixed(2) + ' kg';
+                document.getElementById('sum-weight').textContent = displayWeight;
+                document.getElementById('sum-weight-detail').textContent = formatDate(latestWeight.measured_at);
+            } else {
+                document.getElementById('sum-weight').textContent = '—';
+                document.getElementById('sum-weight-detail').textContent = 'No data';
+            }
+        }
+
+        function getDayCount() {
+            switch (currentRange) {
+                case '24h': return 1;
+                case '7d': return 7;
+                case '14d': return 14;
+                case '30d': return 30;
+                case '90d': return 90;
+                default: return 7;
+            }
+        }
+
+        // --- Charts ---
+
+        function groupByDate(items, dateField) {
+            const grouped = {};
+            items.forEach(item => {
+                const day = new Date(item[dateField]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                grouped[day] = (grouped[day] || 0) + 1;
+            });
+            return grouped;
+        }
+
+        function generateDateLabels() {
+            const { start } = getDateRange(currentRange);
+            const labels = [];
+            const d = new Date(start);
+            const now = new Date();
+            while (d <= now) {
+                labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }));
+                d.setDate(d.getDate() + 1);
+            }
+            return labels;
+        }
+
+        function mapToLabels(labels, grouped) {
+            return labels.map(l => grouped[l] || 0);
+        }
+
+        const chartColors = {
+            accent: '#6c63ff',
+            accentBg: 'rgba(108, 99, 255, 0.15)',
+            success: '#3dd68c',
+            successBg: 'rgba(61, 214, 140, 0.15)',
+            warning: '#f5a623',
+            warningBg: 'rgba(245, 166, 35, 0.15)',
+            info: '#4cc9f0',
+            infoBg: 'rgba(76, 201, 240, 0.15)',
+        };
+
+        function updateFeedingChart(feedings) {
+            const labels = generateDateLabels();
+            const grouped = groupByDate(feedings, 'start_time');
+            const data = mapToLabels(labels, grouped);
+
+            if (feedingChart) feedingChart.destroy();
+            feedingChart = new Chart(document.getElementById('feeding-chart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Feedings',
+                        data,
+                        backgroundColor: chartColors.accentBg,
+                        borderColor: chartColors.accent,
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }]
+                },
+                options: chartOptions('Count'),
+            });
+        }
+
+        function updateNappyChart(nappies) {
+            const labels = generateDateLabels();
+            const wetGrouped = {};
+            const pooGrouped = {};
+
+            nappies.forEach(n => {
+                const day = new Date(n.changed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                if (n.nappy_type === 'wet' || n.nappy_type === 'both') wetGrouped[day] = (wetGrouped[day] || 0) + 1;
+                if (n.nappy_type === 'poo' || n.nappy_type === 'both') pooGrouped[day] = (pooGrouped[day] || 0) + 1;
+            });
+
+            if (nappyChart) nappyChart.destroy();
+            nappyChart = new Chart(document.getElementById('nappy-chart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Wet',
+                            data: mapToLabels(labels, wetGrouped),
+                            backgroundColor: chartColors.infoBg,
+                            borderColor: chartColors.info,
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Poo',
+                            data: mapToLabels(labels, pooGrouped),
+                            backgroundColor: chartColors.warningBg,
+                            borderColor: chartColors.warning,
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: chartOptions('Count'),
+            });
+        }
+
+        function updateSleepChart(sleeps) {
+            const labels = generateDateLabels();
+            const grouped = {};
+
+            sleeps.forEach(s => {
+                if (!s.end_time) return;
+                const day = new Date(s.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                const hours = durationBetween(s.start_time, s.end_time) / 3600000;
+                grouped[day] = (grouped[day] || 0) + hours;
+            });
+
+            // Round to 1 decimal
+            Object.keys(grouped).forEach(k => grouped[k] = Math.round(grouped[k] * 10) / 10);
+
+            if (sleepChart) sleepChart.destroy();
+            sleepChart = new Chart(document.getElementById('sleep-chart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Hours',
+                        data: mapToLabels(labels, grouped),
+                        backgroundColor: chartColors.successBg,
+                        borderColor: chartColors.success,
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }]
+                },
+                options: chartOptions('Hours'),
+            });
+        }
+
+        function updateWeightChart(weights) {
+            const labels = weights.map(w => formatDate(w.measured_at));
+            const data = weights.map(w => {
+                return weightUnit === 'lbs'
+                    ? Math.round(w.weight_kg * 2.20462 * 10) / 10
+                    : Math.round(w.weight_kg * 100) / 100;
+            });
+
+            if (weightChart) weightChart.destroy();
+            weightChart = new Chart(document.getElementById('weight-chart'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: weightUnit === 'lbs' ? 'lbs' : 'kg',
+                        data,
+                        borderColor: chartColors.accent,
+                        backgroundColor: chartColors.accentBg,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: chartColors.accent,
+                        tension: 0.3,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    ...chartOptions(weightUnit === 'lbs' ? 'lbs' : 'kg'),
+                    scales: {
+                        ...chartOptions(weightUnit).scales,
+                        y: {
+                            ...chartOptions(weightUnit).scales.y,
+                            beginAtZero: false,
+                        }
+                    }
+                },
+            });
+        }
+
+        function chartOptions(yLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e2029',
+                        borderColor: '#2e3142',
+                        borderWidth: 1,
+                        titleFont: { family: "'DM Sans', sans-serif" },
+                        bodyFont: { family: "'DM Sans', sans-serif" },
+                        padding: 10,
+                        cornerRadius: 8,
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 45,
+                            font: { size: 11 },
+                            maxTicksLimit: 10,
+                        },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#2e3142' },
+                        title: {
+                            display: true,
+                            text: yLabel,
+                            font: { size: 12 },
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            precision: 0,
+                        },
+                    },
+                },
+            };
+        }
+    </script>
+</body>
+</html>
