@@ -124,7 +124,7 @@
 
         async function loadPreferences() {
             const userId = await getUserId();
-            const { data } = await supabase
+            const { data } = await sb
                 .from('user_preferences')
                 .select('weight_unit')
                 .eq('user_id', userId)
