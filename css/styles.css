@@ -723,9 +723,162 @@ body {
     color: #fff;
 }
 
+/* --- Component toggles (multi-select feed types) --- */
+.component-toggles {
+    display: flex;
+    gap: 6px;
+}
+
+.component-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.component-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.timer-section-group,
+.manual-section-group {
+    margin-top: 16px;
+}
+
+/* --- Dual Timer Grid --- */
+.dual-timer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.dual-timer-col {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.dual-timer-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+
+.dual-timer-time {
+    font-size: 1.8rem !important;
+}
+
+.dual-timer-col .btn {
+    margin-top: 10px;
+}
+
+/* --- Dual Manual Grid --- */
+.dual-manual-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.dual-manual-col {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 10px;
+}
+
+.dual-manual-col .form-input {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+}
+
+/* --- Session / Grouped Entries --- */
+.entry-session .session-components {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.session-component {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* --- Modal Overlay --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-card {
+    max-width: 320px;
+    margin: auto;
+    text-align: center;
+}
+
+.modal-card-wide {
+    max-width: 480px;
+    text-align: left;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+/* --- Edit Component Card --- */
+.edit-component-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.edit-component-header {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* --- Edit button icon --- */
+.btn-icon.edit:hover {
+    color: var(--accent);
+}
+
 /* --- Responsive --- */
 @media (min-width: 480px) {
     .app-container {
         padding: 20px 24px calc(var(--nav-height) + 24px) 24px;
+    }
+}
+
+@media (max-width: 360px) {
+    .dual-timer-time {
+        font-size: 1.4rem !important;
+    }
+    .dual-timer-grid,
+    .dual-manual-grid {
+        gap: 8px;
     }
 }
