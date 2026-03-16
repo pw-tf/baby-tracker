@@ -128,7 +128,7 @@
                 .from('user_preferences')
                 .select('weight_unit')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
             if (data) weightUnit = data.weight_unit;
         }
 
