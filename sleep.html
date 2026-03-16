@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1117">
+    <title>Baby Tracker — Sleep</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-bar">
+            <a href="dashboard.html" class="logo">
+                <span class="logo-icon">😴</span>
+                Sleep
+            </a>
+            <button class="btn-logout" onclick="signOut()">Sign Out</button>
+        </div>
+
+        <!-- Input Mode Toggle -->
+        <div class="input-mode-toggle">
+            <button class="mode-btn active" data-mode="timer" onclick="setMode('timer')">Timer</button>
+            <button class="mode-btn" data-mode="manual" onclick="setMode('manual')">Manual Entry</button>
+        </div>
+
+        <div class="card">
+            <!-- Timer Mode -->
+            <div id="timer-section">
+                <div class="timer-display">
+                    <div class="timer-time" id="timer-display">00:00:00</div>
+                    <div class="timer-label" id="timer-label">Ready</div>
+                </div>
+                <div class="timer-controls">
+                    <button id="timer-start-btn" class="btn btn-timer-start" onclick="toggleTimer()">Start</button>
+                    <button id="timer-save-btn" class="btn btn-primary" onclick="saveTimerEntry()" style="display: none;">Save</button>
+                </div>
+            </div>
+
+            <!-- Manual Mode -->
+            <div id="manual-section" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="manual-start">Fell Asleep</label>
+                    <input type="datetime-local" id="manual-start" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="manual-end">Woke Up</label>
+                    <input type="datetime-local" id="manual-end" class="form-input">
+                </div>
+                <div id="manual-duration" class="timer-label" style="text-align: center; margin-bottom: 12px;"></div>
+                <button class="btn btn-primary" onclick="saveManualEntry()">Save Entry</button>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Sleep Duration</span>
+            </div>
+            <div class="date-range-bar" id="date-range-bar">
+                <button class="range-btn" data-range="24h">24h</button>
+                <button class="range-btn active" data-range="7d">7 days</button>
+                <button class="range-btn" data-range="14d">14 days</button>
+                <button class="range-btn" data-range="30d">30 days</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="sleep-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="entry-list">
+            <div class="entry-list-header">
+                <span class="entry-list-title">Recent Sleep</span>
+            </div>
+            <div id="entry-list-container">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+        <div class="card" style="max-width:320px; margin:auto; text-align:center;">
+            <p style="margin-bottom:16px;">Delete this sleep entry?</p>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
+                <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="main-nav"></nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        Chart.defaults.color = '#9295a5';
+        Chart.defaults.borderColor = '#2e3142';
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+        let inputMode = 'timer';
+        let currentRange = '7d';
+        let sleepChart = null;
+        let timerRunning = false;
+        let timerStart = null;
+        let timerInterval = null;
+        let deleteId = null;
+
+        (async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            initNav('sleep.html');
+            prefillManualTimes();
+            setupRangeButtons();
+            setupManualDurationCalc();
+            await loadEntries();
+            await loadChart();
+        })();
+
+        // --- Mode switching ---
+        function setMode(mode) {
+            inputMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+            document.getElementById('timer-section').style.display = mode === 'timer' ? 'block' : 'none';
+            document.getElementById('manual-section').style.display = mode === 'manual' ? 'block' : 'none';
+        }
+
+        // --- Timer ---
+        function toggleTimer() {
+            if (!timerRunning) startTimer();
+            else stopTimer();
+        }
+
+        function startTimer() {
+            timerRunning = true;
+            timerStart = new Date();
+            document.getElementById('timer-start-btn').textContent = 'Stop';
+            document.getElementById('timer-start-btn').className = 'btn btn-timer-stop';
+            document.getElementById('timer-save-btn').style.display = 'none';
+            document.getElementById('timer-label').textContent = 'Fell asleep at ' + formatTime(timerStart.toISOString());
+
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - timerStart.getTime();
+                document.getElementById('timer-display').textContent = formatElapsed(elapsed);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('timer-start-btn').textContent = 'Start';
+            document.getElementById('timer-start-btn').className = 'btn btn-timer-start';
+            document.getElementById('timer-save-btn').style.display = 'block';
+            document.getElementById('timer-label').textContent = 'Woke up — tap Save to log';
+        }
+
+        function formatElapsed(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const hrs = Math.floor(totalSec / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+            const secs = totalSec % 60;
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // --- Save timer ---
+        async function saveTimerEntry() {
+            if (!timerStart) return;
+            const userId = await getUserId();
+
+            const entry = {
+                user_id: userId,
+                start_time: timerStart.toISOString(),
+                end_time: new Date().toISOString(),
+                notes: document.getElementById('notes').value.trim() || null,
+            };
+
+            const { error } = await sb.from('sleeps').insert(entry);
+            if (error) {
+                showToast('Error saving: ' + error.message, 'error');
+                return;
+            }
+
+            showToast('Sleep logged!');
+            resetForm();
+            await loadEntries();
+            await loadChart();
+        }
+
+        // --- Save manual ---
+        async function saveManualEntry() {
+            const userId = await getUserId();
+            const startVal = document.getElementById('manual-start').value;
+            const endVal = document.getElementById('manual-end').value;
+
+            if (!startVal) {
+                showToast('Please set a start time.', 'error');
+                return;
+            }
+
+            const entry = {
+                user_id: userId,
+                start_time: new Date(startVal).toISOString(),
+                end_time: endVal ? new Date(endVal).toISOString() : null,
+                notes: document.getElementById('notes').value.trim() || null,
+            };
+
+            const { error } = await sb.from('sleeps').insert(entry);
+            if (error) {
+                showToast('Error saving: ' + error.message, 'error');
+                return;
+            }
+
+            showToast('Sleep logged!');
+            resetForm();
+            await loadEntries();
+            await loadChart();
+        }
+
+        function resetForm() {
+            timerStart = null;
+            clearInterval(timerInterval);
+            timerRunning = false;
+            document.getElementById('timer-display').textContent = '00:00:00';
+            document.getElementById('timer-label').textContent = 'Ready';
+            document.getElementById('timer-start-btn').textContent = 'Start';
+            document.getElementById('timer-start-btn').className = 'btn btn-timer-start';
+            document.getElementById('timer-save-btn').style.display = 'none';
+            document.getElementById('notes').value = '';
+            prefillManualTimes();
+        }
+
+        function prefillManualTimes() {
+            document.getElementById('manual-start').value = toDatetimeLocal(new Date());
+            document.getElementById('manual-end').value = '';
+        }
+
+        function setupManualDurationCalc() {
+            const startInput = document.getElementById('manual-start');
+            const endInput = document.getElementById('manual-end');
+            const durationEl = document.getElementById('manual-duration');
+
+            function calc() {
+                if (startInput.value && endInput.value) {
+                    const ms = new Date(endInput.value) - new Date(startInput.value);
+                    durationEl.textContent = ms > 0 ? `Duration: ${formatDuration(ms)}` : 'End must be after start';
+                } else {
+                    durationEl.textContent = '';
+                }
+            }
+            startInput.addEventListener('change', calc);
+            endInput.addEventListener('change', calc);
+        }
+
+        // --- Load entries ---
+        async function loadEntries() {
+            const userId = await getUserId();
+            const { data, error } = await sb
+                .from('sleeps')
+                .select('*')
+                .eq('user_id', userId)
+                .order('start_time', { ascending: false })
+                .limit(20);
+
+            const container = document.getElementById('entry-list-container');
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">😴</div>
+                        <div class="empty-state-text">No sleep logged yet</div>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(entry => {
+                const duration = entry.end_time ? formatDuration(durationBetween(entry.start_time, entry.end_time)) : 'In progress…';
+                const notes = entry.notes ? ` · ${entry.notes}` : '';
+                const endLabel = entry.end_time ? ` → ${formatTime(entry.end_time)}` : '';
+
+                return `
+                    <div class="entry-item">
+                        <div class="entry-icon">😴</div>
+                        <div class="entry-content">
+                            <div class="entry-title">${duration}</div>
+                            <div class="entry-meta">${formatTime(entry.start_time)}${endLabel}${notes}</div>
+                        </div>
+                        <div class="entry-time">${formatDate(entry.start_time)}</div>
+                        <div class="entry-actions">
+                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}')" title="Delete">🗑</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // --- Delete ---
+        function confirmDelete(id) {
+            deleteId = id;
+            document.getElementById('delete-modal').style.display = 'flex';
+            document.getElementById('confirm-delete-btn').onclick = async () => {
+                const { error } = await sb.from('sleeps').delete().eq('id', deleteId);
+                if (error) {
+                    showToast('Error deleting: ' + error.message, 'error');
+                } else {
+                    showToast('Entry deleted');
+                }
+                closeDeleteModal();
+                await loadEntries();
+                await loadChart();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+            deleteId = null;
+        }
+
+        // --- Chart ---
+        function setupRangeButtons() {
+            document.getElementById('date-range-bar').addEventListener('click', (e) => {
+                const btn = e.target.closest('.range-btn');
+                if (!btn) return;
+                document.querySelectorAll('#date-range-bar .range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = btn.dataset.range;
+                loadChart();
+            });
+        }
+
+        async function loadChart() {
+            const userId = await getUserId();
+            const { start, end } = getDateRange(currentRange);
+
+            const { data } = await sb
+                .from('sleeps')
+                .select('start_time, end_time')
+                .eq('user_id', userId)
+                .gte('start_time', start)
+                .lte('start_time', end)
+                .order('start_time', { ascending: true });
+
+            const entries = data || [];
+
+            function generateDateLabels() {
+                const { start } = getDateRange(currentRange);
+                const labels = [];
+                const d = new Date(start);
+                const now = new Date();
+                while (d <= now) {
+                    labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }));
+                    d.setDate(d.getDate() + 1);
+                }
+                return labels;
+            }
+
+            const labels = generateDateLabels();
+            const grouped = {};
+
+            entries.forEach(e => {
+                if (!e.end_time) return;
+                const day = new Date(e.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                const hours = (new Date(e.end_time) - new Date(e.start_time)) / 3600000;
+                grouped[day] = (grouped[day] || 0) + Math.round(hours * 10) / 10;
+            });
+
+            const chartData = labels.map(l => grouped[l] || 0);
+
+            if (sleepChart) sleepChart.destroy();
+            sleepChart = new Chart(document.getElementById('sleep-chart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Hours',
+                        data: chartData,
+                        backgroundColor: 'rgba(61, 214, 140, 0.15)',
+                        borderColor: '#3dd68c',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e2029',
+                            borderColor: '#2e3142',
+                            borderWidth: 1,
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (ctx) => `${ctx.parsed.y} hours`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxRotation: 45, font: { size: 11 }, maxTicksLimit: 10 },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#2e3142' },
+                            title: { display: true, text: 'Hours', font: { size: 12 } },
+                            ticks: { font: { size: 11 } },
+                        },
+                    },
+                },
+            });
+        }
+    </script>
+</body>
+</html>
