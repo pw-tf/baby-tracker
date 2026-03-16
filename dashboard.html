@@ -148,10 +148,10 @@
             const { start, end } = getDateRange(currentRange);
 
             const [feedings, nappies, sleeps, weights] = await Promise.all([
-                supabase.from('feedings').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
-                supabase.from('nappies').select('*').eq('user_id', userId).gte('changed_at', start).lte('changed_at', end).order('changed_at', { ascending: true }),
-                supabase.from('sleeps').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
-                supabase.from('weights').select('*').eq('user_id', userId).gte('measured_at', start).lte('measured_at', end).order('measured_at', { ascending: true }),
+                sb.from('feedings').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
+                sb.from('nappies').select('*').eq('user_id', userId).gte('changed_at', start).lte('changed_at', end).order('changed_at', { ascending: true }),
+                sb.from('sleeps').select('*').eq('user_id', userId).gte('start_time', start).lte('start_time', end).order('start_time', { ascending: true }),
+                sb.from('weights').select('*').eq('user_id', userId).gte('measured_at', start).lte('measured_at', end).order('measured_at', { ascending: true }),
             ]);
 
             updateSummaryCards(feedings.data || [], nappies.data || [], sleeps.data || [], weights.data || []);
