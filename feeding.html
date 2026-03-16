@@ -24,55 +24,127 @@
             <button class="mode-btn" data-mode="manual" onclick="setMode('manual')">Manual Entry</button>
         </div>
 
-        <!-- Feed Type Selection -->
+        <!-- Feed Components Builder -->
         <div class="card">
-            <label class="form-label">Feed Type</label>
-            <div class="toggle-group">
-                <button class="toggle-btn active" data-type="breast" onclick="setFeedType('breast')">🤱 Breast</button>
-                <button class="toggle-btn" data-type="bottle" onclick="setFeedType('bottle')">🍼 Bottle</button>
-                <button class="toggle-btn" data-type="solids" onclick="setFeedType('solids')">🥣 Solids</button>
+            <label class="form-label">Feed Components</label>
+            <div class="component-toggles">
+                <button class="toggle-btn component-toggle active" data-component="breast" onclick="toggleComponent('breast')">🤱 Breast</button>
+                <button class="toggle-btn component-toggle" data-component="bottle" onclick="toggleComponent('bottle')">🍼 Bottle</button>
+                <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')">🥣 Solids</button>
             </div>
+            <p class="component-hint">Select one or more — e.g. breast + bottle for a mixed feed</p>
 
-            <!-- Breast Side (shown for breast only) -->
-            <div id="breast-options" style="margin-top: 16px;">
+            <!-- Breast Options -->
+            <div id="breast-section" class="component-section">
                 <label class="form-label">Side</label>
                 <div class="toggle-group">
                     <button class="toggle-btn active" data-side="left" onclick="setSide('left')">Left</button>
                     <button class="toggle-btn" data-side="right" onclick="setSide('right')">Right</button>
                     <button class="toggle-btn" data-side="both" onclick="setSide('both')">Both</button>
                 </div>
+
+                <!-- Timer Mode: Single breast timer -->
+                <div id="breast-timer-single" class="timer-section-group">
+                    <div class="timer-display">
+                        <div class="timer-time" id="breast-timer-display">00:00:00</div>
+                        <div class="timer-label" id="breast-timer-label">Ready</div>
+                    </div>
+                    <div class="timer-controls">
+                        <button id="breast-timer-btn" class="btn btn-timer-start" onclick="toggleBreastTimer()">Start</button>
+                    </div>
+                </div>
+
+                <!-- Timer Mode: Dual breast timers (shown when 'both' selected) -->
+                <div id="breast-timer-dual" class="timer-section-group" style="display:none;">
+                    <div class="dual-timer-grid">
+                        <div class="dual-timer-col">
+                            <div class="dual-timer-label">Left</div>
+                            <div class="timer-time dual-timer-time" id="left-timer-display">00:00:00</div>
+                            <div class="timer-label" id="left-timer-label">Ready</div>
+                            <button id="left-timer-btn" class="btn btn-timer-start btn-small" onclick="toggleSideTimer('left')">Start</button>
+                        </div>
+                        <div class="dual-timer-col">
+                            <div class="dual-timer-label">Right</div>
+                            <div class="timer-time dual-timer-time" id="right-timer-display">00:00:00</div>
+                            <div class="timer-label" id="right-timer-label">Ready</div>
+                            <button id="right-timer-btn" class="btn btn-timer-start btn-small" onclick="toggleSideTimer('right')">Start</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Mode: Breast -->
+                <div id="breast-manual-single" class="manual-section-group" style="display:none;">
+                    <div class="form-group">
+                        <label class="form-label" for="breast-manual-start">Start Time</label>
+                        <input type="datetime-local" id="breast-manual-start" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="breast-manual-end">End Time</label>
+                        <input type="datetime-local" id="breast-manual-end" class="form-input">
+                    </div>
+                    <div id="breast-manual-duration" class="timer-label" style="text-align:center; margin-bottom:12px;"></div>
+                </div>
+
+                <div id="breast-manual-dual" class="manual-section-group" style="display:none;">
+                    <div class="dual-manual-grid">
+                        <div class="dual-manual-col">
+                            <div class="dual-timer-label">Left</div>
+                            <div class="form-group">
+                                <label class="form-label">Start</label>
+                                <input type="datetime-local" id="left-manual-start" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">End</label>
+                                <input type="datetime-local" id="left-manual-end" class="form-input">
+                            </div>
+                            <div id="left-manual-duration" class="timer-label" style="text-align:center;"></div>
+                        </div>
+                        <div class="dual-manual-col">
+                            <div class="dual-timer-label">Right</div>
+                            <div class="form-group">
+                                <label class="form-label">Start</label>
+                                <input type="datetime-local" id="right-manual-start" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">End</label>
+                                <input type="datetime-local" id="right-manual-end" class="form-input">
+                            </div>
+                            <div id="right-manual-duration" class="timer-label" style="text-align:center;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Volume (shown for bottle only) -->
-            <div id="bottle-options" style="margin-top: 16px; display: none;">
+            <!-- Bottle Options -->
+            <div id="bottle-section" class="component-section" style="display:none;">
                 <label class="form-label" for="volume">Volume (mL)</label>
                 <input type="number" id="volume" class="form-input" placeholder="e.g. 120" min="0" step="5">
             </div>
 
-            <!-- Timer Mode -->
-            <div id="timer-section" style="margin-top: 20px;">
-                <div class="timer-display">
-                    <div class="timer-time" id="timer-display">00:00:00</div>
-                    <div class="timer-label" id="timer-label">Ready</div>
+            <!-- Solids Options -->
+            <div id="solids-section" class="component-section" style="display:none;">
+                <!-- Timer Mode: Solids timer -->
+                <div id="solids-timer" class="timer-section-group">
+                    <div class="timer-display">
+                        <div class="timer-time" id="solids-timer-display">00:00:00</div>
+                        <div class="timer-label" id="solids-timer-label">Ready</div>
+                    </div>
+                    <div class="timer-controls">
+                        <button id="solids-timer-btn" class="btn btn-timer-start" onclick="toggleSolidsTimer()">Start</button>
+                    </div>
                 </div>
-                <div class="timer-controls">
-                    <button id="timer-start-btn" class="btn btn-timer-start" onclick="toggleTimer()">Start</button>
-                    <button id="timer-save-btn" class="btn btn-primary" onclick="saveTimerEntry()" style="display: none;">Save</button>
+                <!-- Manual Mode: Solids -->
+                <div id="solids-manual" class="manual-section-group" style="display:none;">
+                    <div class="form-group">
+                        <label class="form-label" for="solids-manual-start">Start Time</label>
+                        <input type="datetime-local" id="solids-manual-start" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="solids-manual-end">End Time</label>
+                        <input type="datetime-local" id="solids-manual-end" class="form-input">
+                    </div>
+                    <div id="solids-manual-duration" class="timer-label" style="text-align:center; margin-bottom:12px;"></div>
                 </div>
-            </div>
-
-            <!-- Manual Mode -->
-            <div id="manual-section" style="margin-top: 20px; display: none;">
-                <div class="form-group">
-                    <label class="form-label" for="manual-start">Start Time</label>
-                    <input type="datetime-local" id="manual-start" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="manual-end">End Time</label>
-                    <input type="datetime-local" id="manual-end" class="form-input">
-                </div>
-                <div id="manual-duration" class="timer-label" style="text-align: center; margin-bottom: 12px;"></div>
-                <button class="btn btn-primary" onclick="saveManualEntry()">Save Entry</button>
             </div>
 
             <!-- Notes -->
@@ -80,6 +152,9 @@
                 <label class="form-label" for="notes">Notes</label>
                 <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
             </div>
+
+            <!-- Save Button -->
+            <button class="btn btn-primary" id="save-feed-btn" onclick="saveFeed()">Save Feed</button>
         </div>
 
         <!-- Chart -->
@@ -110,13 +185,24 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; display:none; align-items:center; justify-content:center;">
-        <div class="card" style="max-width:320px; margin:auto; text-align:center;">
+    <div id="delete-modal" class="modal-overlay" style="display:none;">
+        <div class="card modal-card">
             <p style="margin-bottom:16px;">Delete this feeding entry?</p>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
                 <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1;">Delete</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal-overlay" style="display:none;">
+        <div class="card modal-card modal-card-wide">
+            <div class="modal-header">
+                <span class="card-title">Edit Feed</span>
+                <button class="btn-icon" onclick="closeEditModal()" title="Close">✕</button>
+            </div>
+            <div id="edit-modal-body"></div>
         </div>
     </div>
 
@@ -133,19 +219,24 @@
         Chart.defaults.font.family = "'DM Sans', sans-serif";
 
         // State
-        let feedType = 'breast';
+        let activeComponents = new Set(['breast']);
         let breastSide = 'left';
         let inputMode = 'timer';
         let currentRange = '7d';
         let feedingChart = null;
 
-        // Timer state
-        let timerRunning = false;
-        let timerStart = null;
-        let timerInterval = null;
+        // Timer states
+        const timers = {
+            breast: { running: false, start: null, interval: null, elapsed: 0 },
+            left:   { running: false, start: null, interval: null, elapsed: 0 },
+            right:  { running: false, start: null, interval: null, elapsed: 0 },
+            solids: { running: false, start: null, interval: null, elapsed: 0 },
+        };
 
-        // Delete state
+        // Delete/Edit state
         let deleteId = null;
+        let deleteSessionId = null;
+        let editEntries = null;
 
         (async () => {
             const session = await requireAuth();
@@ -154,61 +245,123 @@
             prefillManualTimes();
             setupRangeButtons();
             setupManualDurationCalc();
+            updateVisibility();
             await loadEntries();
             await loadChart();
         })();
+
+        // --- Generate UUID v4 ---
+        function uuid() {
+            return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
 
         // --- Mode switching ---
         function setMode(mode) {
             inputMode = mode;
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-            document.getElementById('timer-section').style.display = mode === 'timer' ? 'block' : 'none';
-            document.getElementById('manual-section').style.display = mode === 'manual' ? 'block' : 'none';
+            updateVisibility();
         }
 
-        // --- Feed type ---
-        function setFeedType(type) {
-            feedType = type;
-            document.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-            document.getElementById('breast-options').style.display = type === 'breast' ? 'block' : 'none';
-            document.getElementById('bottle-options').style.display = type === 'bottle' ? 'block' : 'none';
+        function updateVisibility() {
+            const isTimer = inputMode === 'timer';
+            const isManual = inputMode === 'manual';
+            const hasBreast = activeComponents.has('breast');
+            const isBoth = breastSide === 'both';
+
+            // Breast section
+            document.getElementById('breast-section').style.display = hasBreast ? 'block' : 'none';
+            document.getElementById('breast-timer-single').style.display = (hasBreast && isTimer && !isBoth) ? 'block' : 'none';
+            document.getElementById('breast-timer-dual').style.display = (hasBreast && isTimer && isBoth) ? 'block' : 'none';
+            document.getElementById('breast-manual-single').style.display = (hasBreast && isManual && !isBoth) ? 'block' : 'none';
+            document.getElementById('breast-manual-dual').style.display = (hasBreast && isManual && isBoth) ? 'block' : 'none';
+
+            // Bottle section
+            document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
+
+            // Solids section
+            const hasSolids = activeComponents.has('solids');
+            document.getElementById('solids-section').style.display = hasSolids ? 'block' : 'none';
+            if (hasSolids) {
+                document.getElementById('solids-timer').style.display = isTimer ? 'block' : 'none';
+                document.getElementById('solids-manual').style.display = isManual ? 'block' : 'none';
+            }
+        }
+
+        // --- Component toggles (multi-select) ---
+        function toggleComponent(type) {
+            if (activeComponents.has(type)) {
+                if (activeComponents.size === 1) return; // keep at least one
+                activeComponents.delete(type);
+            } else {
+                activeComponents.add(type);
+            }
+            document.querySelectorAll('.component-toggle').forEach(b => {
+                b.classList.toggle('active', activeComponents.has(b.dataset.component));
+            });
+            updateVisibility();
         }
 
         function setSide(side) {
             breastSide = side;
             document.querySelectorAll('[data-side]').forEach(b => b.classList.toggle('active', b.dataset.side === side));
+            updateVisibility();
         }
 
-        // --- Timer ---
-        function toggleTimer() {
-            if (!timerRunning) {
-                startTimer();
-            } else {
-                stopTimer();
-            }
-        }
-
-        function startTimer() {
-            timerRunning = true;
-            timerStart = new Date();
-            document.getElementById('timer-start-btn').textContent = 'Stop';
-            document.getElementById('timer-start-btn').className = 'btn btn-timer-stop';
-            document.getElementById('timer-save-btn').style.display = 'none';
-            document.getElementById('timer-label').textContent = 'Started at ' + formatTime(timerStart.toISOString());
-
-            timerInterval = setInterval(() => {
-                const elapsed = Date.now() - timerStart.getTime();
-                document.getElementById('timer-display').textContent = formatElapsed(elapsed);
+        // --- Timer functions ---
+        function startTimerState(key, displayId, labelId, btnId) {
+            const t = timers[key];
+            t.running = true;
+            t.start = new Date();
+            t.elapsed = 0;
+            document.getElementById(btnId).textContent = 'Stop';
+            document.getElementById(btnId).className = document.getElementById(btnId).className.replace('btn-timer-start', 'btn-timer-stop');
+            document.getElementById(labelId).textContent = 'Started at ' + formatTime(t.start.toISOString());
+            t.interval = setInterval(() => {
+                t.elapsed = Date.now() - t.start.getTime();
+                document.getElementById(displayId).textContent = formatElapsed(t.elapsed);
             }, 1000);
         }
 
-        function stopTimer() {
-            timerRunning = false;
-            clearInterval(timerInterval);
-            document.getElementById('timer-start-btn').textContent = 'Start';
-            document.getElementById('timer-start-btn').className = 'btn btn-timer-start';
-            document.getElementById('timer-save-btn').style.display = 'block';
-            document.getElementById('timer-label').textContent = 'Stopped — tap Save to log';
+        function stopTimerState(key, displayId, labelId, btnId) {
+            const t = timers[key];
+            t.running = false;
+            clearInterval(t.interval);
+            t.elapsed = Date.now() - t.start.getTime();
+            document.getElementById(displayId).textContent = formatElapsed(t.elapsed);
+            document.getElementById(btnId).textContent = 'Start';
+            document.getElementById(btnId).className = document.getElementById(btnId).className.replace('btn-timer-stop', 'btn-timer-start');
+            document.getElementById(labelId).textContent = 'Stopped — ' + formatDuration(t.elapsed);
+        }
+
+        function toggleBreastTimer() {
+            if (!timers.breast.running) {
+                startTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
+            } else {
+                stopTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
+            }
+        }
+
+        function toggleSideTimer(side) {
+            const key = side; // 'left' or 'right'
+            const displayId = `${side}-timer-display`;
+            const labelId = `${side}-timer-label`;
+            const btnId = `${side}-timer-btn`;
+            if (!timers[key].running) {
+                startTimerState(key, displayId, labelId, btnId);
+            } else {
+                stopTimerState(key, displayId, labelId, btnId);
+            }
+        }
+
+        function toggleSolidsTimer() {
+            if (!timers.solids.running) {
+                startTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
+            } else {
+                stopTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
+            }
         }
 
         function formatElapsed(ms) {
@@ -219,64 +372,158 @@
             return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         }
 
-        // --- Save timer entry ---
-        async function saveTimerEntry() {
-            if (!timerStart) return;
+        // --- Save Feed (handles all components) ---
+        async function saveFeed() {
             const userId = await getUserId();
-            const endTime = new Date();
+            const sessionId = uuid();
+            const notes = document.getElementById('notes').value.trim() || null;
+            const records = [];
 
-            const entry = {
-                user_id: userId,
-                feed_type: feedType,
-                start_time: timerStart.toISOString(),
-                end_time: endTime.toISOString(),
-                notes: document.getElementById('notes').value.trim() || null,
-            };
-
-            if (feedType === 'breast') entry.breast_side = breastSide;
-            if (feedType === 'bottle') {
-                const vol = document.getElementById('volume').value;
-                if (vol) entry.volume_ml = Number(vol);
+            if (activeComponents.has('breast')) {
+                if (inputMode === 'timer') {
+                    if (breastSide === 'both') {
+                        // Dual timers
+                        if (timers.left.start) {
+                            // Stop running timer
+                            if (timers.left.running) stopTimerState('left', 'left-timer-display', 'left-timer-label', 'left-timer-btn');
+                            records.push({
+                                user_id: userId, session_id: sessionId,
+                                feed_type: 'breast', breast_side: 'left',
+                                start_time: timers.left.start.toISOString(),
+                                end_time: new Date(timers.left.start.getTime() + timers.left.elapsed).toISOString(),
+                                notes,
+                            });
+                        }
+                        if (timers.right.start) {
+                            if (timers.right.running) stopTimerState('right', 'right-timer-display', 'right-timer-label', 'right-timer-btn');
+                            records.push({
+                                user_id: userId, session_id: sessionId,
+                                feed_type: 'breast', breast_side: 'right',
+                                start_time: timers.right.start.toISOString(),
+                                end_time: new Date(timers.right.start.getTime() + timers.right.elapsed).toISOString(),
+                                notes: records.length === 0 ? notes : null,
+                            });
+                        }
+                        if (records.length === 0) {
+                            showToast('Start at least one breast timer first.', 'error');
+                            return;
+                        }
+                    } else {
+                        // Single breast timer
+                        if (!timers.breast.start) {
+                            showToast('Start the breast timer first.', 'error');
+                            return;
+                        }
+                        if (timers.breast.running) stopTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
+                        records.push({
+                            user_id: userId, session_id: sessionId,
+                            feed_type: 'breast', breast_side: breastSide,
+                            start_time: timers.breast.start.toISOString(),
+                            end_time: new Date(timers.breast.start.getTime() + timers.breast.elapsed).toISOString(),
+                            notes,
+                        });
+                    }
+                } else {
+                    // Manual mode breast
+                    if (breastSide === 'both') {
+                        const ls = document.getElementById('left-manual-start').value;
+                        const le = document.getElementById('left-manual-end').value;
+                        const rs = document.getElementById('right-manual-start').value;
+                        const re = document.getElementById('right-manual-end').value;
+                        if (!ls && !rs) {
+                            showToast('Set at least one start time for breast.', 'error');
+                            return;
+                        }
+                        if (ls) {
+                            records.push({
+                                user_id: userId, session_id: sessionId,
+                                feed_type: 'breast', breast_side: 'left',
+                                start_time: new Date(ls).toISOString(),
+                                end_time: le ? new Date(le).toISOString() : null,
+                                notes,
+                            });
+                        }
+                        if (rs) {
+                            records.push({
+                                user_id: userId, session_id: sessionId,
+                                feed_type: 'breast', breast_side: 'right',
+                                start_time: new Date(rs).toISOString(),
+                                end_time: re ? new Date(re).toISOString() : null,
+                                notes: records.length === 0 ? notes : null,
+                            });
+                        }
+                    } else {
+                        const s = document.getElementById('breast-manual-start').value;
+                        const e = document.getElementById('breast-manual-end').value;
+                        if (!s) {
+                            showToast('Set a start time for breast.', 'error');
+                            return;
+                        }
+                        records.push({
+                            user_id: userId, session_id: sessionId,
+                            feed_type: 'breast', breast_side: breastSide,
+                            start_time: new Date(s).toISOString(),
+                            end_time: e ? new Date(e).toISOString() : null,
+                            notes,
+                        });
+                    }
+                }
             }
 
-            const { error } = await sb.from('feedings').insert(entry);
-            if (error) {
-                showToast('Error saving: ' + error.message, 'error');
+            if (activeComponents.has('bottle')) {
+                const vol = document.getElementById('volume').value;
+                if (!vol || Number(vol) <= 0) {
+                    showToast('Enter a bottle volume.', 'error');
+                    return;
+                }
+                // For bottle, use the earliest breast start time or now
+                const refTime = records.length > 0 ? records[0].start_time : new Date().toISOString();
+                records.push({
+                    user_id: userId, session_id: sessionId,
+                    feed_type: 'bottle', volume_ml: Number(vol),
+                    start_time: refTime,
+                    end_time: refTime,
+                    notes: records.length === 0 ? notes : null,
+                });
+            }
+
+            if (activeComponents.has('solids')) {
+                if (inputMode === 'timer') {
+                    if (!timers.solids.start) {
+                        showToast('Start the solids timer first.', 'error');
+                        return;
+                    }
+                    if (timers.solids.running) stopTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
+                    records.push({
+                        user_id: userId, session_id: sessionId,
+                        feed_type: 'solids',
+                        start_time: timers.solids.start.toISOString(),
+                        end_time: new Date(timers.solids.start.getTime() + timers.solids.elapsed).toISOString(),
+                        notes: records.length === 0 ? notes : null,
+                    });
+                } else {
+                    const s = document.getElementById('solids-manual-start').value;
+                    const e = document.getElementById('solids-manual-end').value;
+                    if (!s) {
+                        showToast('Set a start time for solids.', 'error');
+                        return;
+                    }
+                    records.push({
+                        user_id: userId, session_id: sessionId,
+                        feed_type: 'solids',
+                        start_time: new Date(s).toISOString(),
+                        end_time: e ? new Date(e).toISOString() : null,
+                        notes: records.length === 0 ? notes : null,
+                    });
+                }
+            }
+
+            if (records.length === 0) {
+                showToast('No feed data to save.', 'error');
                 return;
             }
 
-            showToast('Feeding logged!');
-            resetForm();
-            await loadEntries();
-            await loadChart();
-        }
-
-        // --- Save manual entry ---
-        async function saveManualEntry() {
-            const userId = await getUserId();
-            const startVal = document.getElementById('manual-start').value;
-            const endVal = document.getElementById('manual-end').value;
-
-            if (!startVal) {
-                showToast('Please set a start time.', 'error');
-                return;
-            }
-
-            const entry = {
-                user_id: userId,
-                feed_type: feedType,
-                start_time: new Date(startVal).toISOString(),
-                end_time: endVal ? new Date(endVal).toISOString() : null,
-                notes: document.getElementById('notes').value.trim() || null,
-            };
-
-            if (feedType === 'breast') entry.breast_side = breastSide;
-            if (feedType === 'bottle') {
-                const vol = document.getElementById('volume').value;
-                if (vol) entry.volume_ml = Number(vol);
-            }
-
-            const { error } = await sb.from('feedings').insert(entry);
+            const { error } = await sb.from('feedings').insert(records);
             if (error) {
                 showToast('Error saving: ' + error.message, 'error');
                 return;
@@ -289,14 +536,28 @@
         }
 
         function resetForm() {
-            timerStart = null;
-            clearInterval(timerInterval);
-            timerRunning = false;
-            document.getElementById('timer-display').textContent = '00:00:00';
-            document.getElementById('timer-label').textContent = 'Ready';
-            document.getElementById('timer-start-btn').textContent = 'Start';
-            document.getElementById('timer-start-btn').className = 'btn btn-timer-start';
-            document.getElementById('timer-save-btn').style.display = 'none';
+            Object.keys(timers).forEach(key => {
+                const t = timers[key];
+                clearInterval(t.interval);
+                t.running = false;
+                t.start = null;
+                t.elapsed = 0;
+            });
+            ['breast-timer-display', 'left-timer-display', 'right-timer-display', 'solids-timer-display'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '00:00:00';
+            });
+            ['breast-timer-label', 'left-timer-label', 'right-timer-label', 'solids-timer-label'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = 'Ready';
+            });
+            ['breast-timer-btn', 'left-timer-btn', 'right-timer-btn', 'solids-timer-btn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = 'Start';
+                    el.className = el.className.replace('btn-timer-stop', 'btn-timer-start');
+                }
+            });
             document.getElementById('notes').value = '';
             document.getElementById('volume').value = '';
             prefillManualTimes();
@@ -304,29 +565,43 @@
 
         function prefillManualTimes() {
             const now = new Date();
-            document.getElementById('manual-start').value = toDatetimeLocal(now);
-            document.getElementById('manual-end').value = '';
+            const val = toDatetimeLocal(now);
+            ['breast-manual-start', 'left-manual-start', 'right-manual-start', 'solids-manual-start'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            });
+            ['breast-manual-end', 'left-manual-end', 'right-manual-end', 'solids-manual-end'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
         }
 
         function setupManualDurationCalc() {
-            const startInput = document.getElementById('manual-start');
-            const endInput = document.getElementById('manual-end');
-            const durationEl = document.getElementById('manual-duration');
-
-            function calc() {
-                if (startInput.value && endInput.value) {
-                    const ms = new Date(endInput.value) - new Date(startInput.value);
-                    durationEl.textContent = ms > 0 ? `Duration: ${formatDuration(ms)}` : 'End must be after start';
-                } else {
-                    durationEl.textContent = '';
+            const pairs = [
+                ['breast-manual-start', 'breast-manual-end', 'breast-manual-duration'],
+                ['left-manual-start', 'left-manual-end', 'left-manual-duration'],
+                ['right-manual-start', 'right-manual-end', 'right-manual-duration'],
+                ['solids-manual-start', 'solids-manual-end', 'solids-manual-duration'],
+            ];
+            pairs.forEach(([sId, eId, dId]) => {
+                const sEl = document.getElementById(sId);
+                const eEl = document.getElementById(eId);
+                const dEl = document.getElementById(dId);
+                if (!sEl || !eEl || !dEl) return;
+                function calc() {
+                    if (sEl.value && eEl.value) {
+                        const ms = new Date(eEl.value) - new Date(sEl.value);
+                        dEl.textContent = ms > 0 ? `Duration: ${formatDuration(ms)}` : 'End must be after start';
+                    } else {
+                        dEl.textContent = '';
+                    }
                 }
-            }
-
-            startInput.addEventListener('change', calc);
-            endInput.addEventListener('change', calc);
+                sEl.addEventListener('change', calc);
+                eEl.addEventListener('change', calc);
+            });
         }
 
-        // --- Load entries ---
+        // --- Load entries (grouped by session) ---
         async function loadEntries() {
             const userId = await getUserId();
             const { data, error } = await sb
@@ -334,7 +609,7 @@
                 .select('*')
                 .eq('user_id', userId)
                 .order('start_time', { ascending: false })
-                .limit(20);
+                .limit(50);
 
             const container = document.getElementById('entry-list-container');
 
@@ -347,43 +622,102 @@
                 return;
             }
 
-            container.innerHTML = data.map(entry => {
-                const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
-                const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
-                let detail = '';
+            // Group by session_id (or treat each entry as its own session if no session_id)
+            const sessions = new Map();
+            data.forEach(entry => {
+                const key = entry.session_id || entry.id;
+                if (!sessions.has(key)) sessions.set(key, []);
+                sessions.get(key).push(entry);
+            });
 
-                if (entry.feed_type === 'breast' && entry.breast_side) {
-                    detail = entry.breast_side.charAt(0).toUpperCase() + entry.breast_side.slice(1);
+            let count = 0;
+            let html = '';
+            for (const [sessionKey, entries] of sessions) {
+                if (count >= 20) break;
+                count++;
+                const sessionId = entries[0].session_id;
+                const isMulti = entries.length > 1;
+                const earliest = entries.reduce((a, b) => new Date(a.start_time) < new Date(b.start_time) ? a : b);
+                const notes = entries.find(e => e.notes)?.notes;
+
+                if (isMulti) {
+                    // Multi-component feed
+                    const components = entries.map(e => {
+                        const icon = e.feed_type === 'breast' ? '🤱' : e.feed_type === 'bottle' ? '🍼' : '🥣';
+                        let label = '';
+                        if (e.feed_type === 'breast') {
+                            const side = e.breast_side ? e.breast_side.charAt(0).toUpperCase() + e.breast_side.slice(1) : '';
+                            const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
+                            label = `${icon} ${side} · ${dur}`;
+                        } else if (e.feed_type === 'bottle') {
+                            label = `${icon} ${e.volume_ml ? e.volume_ml + ' mL' : 'Bottle'}`;
+                        } else {
+                            const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
+                            label = `${icon} Solids · ${dur}`;
+                        }
+                        return `<div class="session-component">${label}</div>`;
+                    }).join('');
+
+                    html += `
+                        <div class="entry-item entry-session">
+                            <div class="entry-content">
+                                <div class="session-components">${components}</div>
+                                ${notes ? `<div class="entry-meta">${notes}</div>` : ''}
+                            </div>
+                            <div class="entry-time">${formatDateTime(earliest.start_time)}</div>
+                            <div class="entry-actions">
+                                <button class="btn-icon edit" onclick="openEditModal('${sessionId || entries[0].id}')" title="Edit">✏️</button>
+                                <button class="btn-icon delete" onclick="confirmDelete('${entries[0].id}', '${sessionId || ''}')" title="Delete">🗑</button>
+                            </div>
+                        </div>`;
+                } else {
+                    // Single-component feed
+                    const entry = entries[0];
+                    const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
+                    const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
+                    let detail = '';
+                    if (entry.feed_type === 'breast' && entry.breast_side) {
+                        detail = entry.breast_side.charAt(0).toUpperCase() + entry.breast_side.slice(1);
+                    }
+                    if (entry.feed_type === 'bottle' && entry.volume_ml) {
+                        detail = entry.volume_ml + ' mL';
+                    }
+                    const duration = entry.end_time ? formatDuration(durationBetween(entry.start_time, entry.end_time)) : '—';
+                    const entryNotes = entry.notes ? ` · ${entry.notes}` : '';
+
+                    html += `
+                        <div class="entry-item">
+                            <div class="entry-icon">${icon}</div>
+                            <div class="entry-content">
+                                <div class="entry-title">${typeLabel}${detail ? ' · ' + detail : ''}</div>
+                                <div class="entry-meta">${duration}${entryNotes}</div>
+                            </div>
+                            <div class="entry-time">${formatDateTime(entry.start_time)}</div>
+                            <div class="entry-actions">
+                                <button class="btn-icon edit" onclick="openEditModal('${entry.session_id || entry.id}')" title="Edit">✏️</button>
+                                <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', '${entry.session_id || ''}')" title="Delete">🗑</button>
+                            </div>
+                        </div>`;
                 }
-                if (entry.feed_type === 'bottle' && entry.volume_ml) {
-                    detail = entry.volume_ml + ' mL';
-                }
+            }
 
-                const duration = entry.end_time ? formatDuration(durationBetween(entry.start_time, entry.end_time)) : '—';
-                const notes = entry.notes ? ` · ${entry.notes}` : '';
-
-                return `
-                    <div class="entry-item">
-                        <div class="entry-icon">${icon}</div>
-                        <div class="entry-content">
-                            <div class="entry-title">${typeLabel}${detail ? ' · ' + detail : ''}</div>
-                            <div class="entry-meta">${duration}${notes}</div>
-                        </div>
-                        <div class="entry-time">${formatDateTime(entry.start_time)}</div>
-                        <div class="entry-actions">
-                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}')" title="Delete">🗑</button>
-                        </div>
-                    </div>`;
-            }).join('');
+            container.innerHTML = html;
         }
 
         // --- Delete ---
-        function confirmDelete(id) {
+        function confirmDelete(id, sessionId) {
             deleteId = id;
+            deleteSessionId = sessionId || null;
             const modal = document.getElementById('delete-modal');
             modal.style.display = 'flex';
             document.getElementById('confirm-delete-btn').onclick = async () => {
-                const { error } = await sb.from('feedings').delete().eq('id', deleteId);
+                let error;
+                if (deleteSessionId) {
+                    // Delete all records in the session
+                    ({ error } = await sb.from('feedings').delete().eq('session_id', deleteSessionId));
+                } else {
+                    ({ error } = await sb.from('feedings').delete().eq('id', deleteId));
+                }
                 if (error) {
                     showToast('Error deleting: ' + error.message, 'error');
                 } else {
@@ -398,6 +732,130 @@
         function closeDeleteModal() {
             document.getElementById('delete-modal').style.display = 'none';
             deleteId = null;
+            deleteSessionId = null;
+        }
+
+        // --- Edit Modal ---
+        async function openEditModal(sessionOrId) {
+            const userId = await getUserId();
+            // Try fetching by session_id first
+            let { data } = await sb.from('feedings').select('*').eq('session_id', sessionOrId).eq('user_id', userId);
+            if (!data || data.length === 0) {
+                // Fallback: fetch by id
+                ({ data } = await sb.from('feedings').select('*').eq('id', sessionOrId).eq('user_id', userId));
+            }
+            if (!data || data.length === 0) {
+                showToast('Could not load entry.', 'error');
+                return;
+            }
+
+            editEntries = data;
+            renderEditModal();
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function renderEditModal() {
+            const body = document.getElementById('edit-modal-body');
+            let html = '';
+
+            editEntries.forEach((entry, idx) => {
+                const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
+                const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
+                const sideLabel = entry.breast_side ? ` (${entry.breast_side})` : '';
+
+                html += `<div class="edit-component-card">
+                    <div class="edit-component-header">${icon} ${typeLabel}${sideLabel}</div>`;
+
+                if (entry.feed_type === 'breast') {
+                    html += `
+                        <div class="form-group">
+                            <label class="form-label">Side</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn ${entry.breast_side === 'left' ? 'active' : ''}" onclick="setEditSide(${idx}, 'left', this)">Left</button>
+                                <button class="toggle-btn ${entry.breast_side === 'right' ? 'active' : ''}" onclick="setEditSide(${idx}, 'right', this)">Right</button>
+                            </div>
+                        </div>`;
+                }
+
+                if (entry.feed_type === 'breast' || entry.feed_type === 'solids') {
+                    html += `
+                        <div class="form-group">
+                            <label class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-input" id="edit-start-${idx}" value="${toDatetimeLocal(new Date(entry.start_time))}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time</label>
+                            <input type="datetime-local" class="form-input" id="edit-end-${idx}" value="${entry.end_time ? toDatetimeLocal(new Date(entry.end_time)) : ''}">
+                        </div>`;
+                }
+
+                if (entry.feed_type === 'bottle') {
+                    html += `
+                        <div class="form-group">
+                            <label class="form-label">Volume (mL)</label>
+                            <input type="number" class="form-input" id="edit-volume-${idx}" value="${entry.volume_ml || ''}" min="0" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <input type="datetime-local" class="form-input" id="edit-start-${idx}" value="${toDatetimeLocal(new Date(entry.start_time))}">
+                        </div>`;
+                }
+
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="edit-notes-${idx}" rows="1">${entry.notes || ''}</textarea>
+                    </div>
+                </div>`;
+            });
+
+            html += `<div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1;">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEdit()" style="flex:1;">Save Changes</button>
+            </div>`;
+
+            body.innerHTML = html;
+        }
+
+        function setEditSide(idx, side, btn) {
+            editEntries[idx].breast_side = side;
+            const group = btn.parentElement;
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function saveEdit() {
+            for (let i = 0; i < editEntries.length; i++) {
+                const entry = editEntries[i];
+                const updates = {};
+
+                const startEl = document.getElementById(`edit-start-${i}`);
+                const endEl = document.getElementById(`edit-end-${i}`);
+                const volEl = document.getElementById(`edit-volume-${i}`);
+                const notesEl = document.getElementById(`edit-notes-${i}`);
+
+                if (startEl && startEl.value) updates.start_time = new Date(startEl.value).toISOString();
+                if (endEl) updates.end_time = endEl.value ? new Date(endEl.value).toISOString() : null;
+                if (volEl) updates.volume_ml = volEl.value ? Number(volEl.value) : null;
+                if (notesEl) updates.notes = notesEl.value.trim() || null;
+                if (entry.feed_type === 'breast') updates.breast_side = entry.breast_side;
+
+                const { error } = await sb.from('feedings').update(updates).eq('id', entry.id);
+                if (error) {
+                    showToast('Error updating: ' + error.message, 'error');
+                    return;
+                }
+            }
+
+            showToast('Feed updated!');
+            closeEditModal();
+            await loadEntries();
+            await loadChart();
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            editEntries = null;
         }
 
         // --- Chart ---
