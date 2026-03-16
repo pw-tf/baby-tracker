@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1117">
+    <title>Baby Tracker — Nappy</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .image-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+        .image-upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+        .image-upload-area.has-image {
+            border-style: solid;
+            padding: 8px;
+        }
+        .image-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .upload-icon { font-size: 1.8rem; margin-bottom: 6px; }
+        .upload-text { font-size: 0.85rem; color: var(--text-secondary); }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: var(--radius-sm);
+            object-fit: contain;
+        }
+        .image-preview-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .remove-image-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--danger);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .entry-thumbnail {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: var(--radius-md);
+            object-fit: contain;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-bar">
+            <a href="dashboard.html" class="logo">
+                <span class="logo-icon">👶</span>
+                Nappy
+            </a>
+            <button class="btn-logout" onclick="signOut()">Sign Out</button>
+        </div>
+
+        <!-- Log Form -->
+        <div class="card">
+            <label class="form-label">Type</label>
+            <div class="toggle-group">
+                <button class="toggle-btn active" data-type="wet" onclick="setNappyType('wet')">💧 Wet</button>
+                <button class="toggle-btn" data-type="poo" onclick="setNappyType('poo')">💩 Poo</button>
+                <button class="toggle-btn" data-type="both" onclick="setNappyType('both')">💧💩 Both</button>
+            </div>
+
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label" for="changed-at">Time</label>
+                <input type="datetime-local" id="changed-at" class="form-input">
+            </div>
+
+            <!-- Image Upload -->
+            <div class="form-group">
+                <label class="form-label">Photo (optional)</label>
+                <div class="image-upload-area" id="upload-area">
+                    <div id="upload-placeholder">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Tap to add photo</div>
+                    </div>
+                    <div id="upload-preview" style="display: none;"></div>
+                    <input type="file" id="image-input" accept="image/*" capture="environment" onchange="handleImageSelect(event)">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
+            </div>
+
+            <button class="btn btn-primary" id="save-btn" onclick="saveEntry()">Save Entry</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Nappy Frequency</span>
+            </div>
+            <div class="date-range-bar" id="date-range-bar">
+                <button class="range-btn" data-range="24h">24h</button>
+                <button class="range-btn active" data-range="7d">7 days</button>
+                <button class="range-btn" data-range="14d">14 days</button>
+                <button class="range-btn" data-range="30d">30 days</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="nappy-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="entry-list">
+            <div class="entry-list-header">
+                <span class="entry-list-title">Recent Nappies</span>
+            </div>
+            <div id="entry-list-container">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+        <div class="card" style="max-width:320px; margin:auto; text-align:center;">
+            <p style="margin-bottom:16px;">Delete this nappy entry?</p>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
+                <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <img id="lightbox-img" src="" alt="Nappy photo">
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="main-nav"></nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        Chart.defaults.color = '#9295a5';
+        Chart.defaults.borderColor = '#2e3142';
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+        let nappyType = 'wet';
+        let currentRange = '7d';
+        let nappyChart = null;
+        let selectedImageFile = null;
+        let deleteId = null;
+        let deleteImagePath = null;
+
+        (async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            initNav('nappy.html');
+            prefillTime();
+            setupRangeButtons();
+            await loadEntries();
+            await loadChart();
+        })();
+
+        function prefillTime() {
+            document.getElementById('changed-at').value = toDatetimeLocal(new Date());
+        }
+
+        function setNappyType(type) {
+            nappyType = type;
+            document.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+        }
+
+        // --- Image handling ---
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            compressImage(file, 200, (compressedFile) => {
+                selectedImageFile = compressedFile;
+                showPreview(compressedFile);
+            });
+        }
+
+        function compressImage(file, maxKB, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let { width, height } = img;
+
+                    // Scale down if large
+                    const maxDim = 1200;
+                    if (width > maxDim || height > maxDim) {
+                        const ratio = Math.min(maxDim / width, maxDim / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Iteratively reduce quality
+                    let quality = 0.8;
+                    let blob;
+
+                    function tryCompress() {
+                        canvas.toBlob((b) => {
+                            if (b.size > maxKB * 1024 && quality > 0.1) {
+                                quality -= 0.1;
+                                tryCompress();
+                            } else {
+                                const compressed = new File([b], file.name, { type: 'image/jpeg' });
+                                callback(compressed);
+                            }
+                        }, 'image/jpeg', quality);
+                    }
+
+                    tryCompress();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showPreview(file) {
+            const area = document.getElementById('upload-area');
+            const placeholder = document.getElementById('upload-placeholder');
+            const preview = document.getElementById('upload-preview');
+
+            area.classList.add('has-image');
+            placeholder.style.display = 'none';
+            preview.style.display = 'block';
+
+            const url = URL.createObjectURL(file);
+            preview.innerHTML = `
+                <div class="image-preview-wrapper">
+                    <img src="${url}" class="image-preview" alt="Preview">
+                    <button class="remove-image-btn" onclick="removeImage(event)">✕</button>
+                </div>`;
+        }
+
+        function removeImage(event) {
+            event.stopPropagation();
+            event.preventDefault();
+            selectedImageFile = null;
+            const area = document.getElementById('upload-area');
+            const placeholder = document.getElementById('upload-placeholder');
+            const preview = document.getElementById('upload-preview');
+            area.classList.remove('has-image');
+            placeholder.style.display = 'block';
+            preview.style.display = 'none';
+            preview.innerHTML = '';
+            document.getElementById('image-input').value = '';
+        }
+
+        // --- Save ---
+        async function saveEntry() {
+            const userId = await getUserId();
+            const changedAt = document.getElementById('changed-at').value;
+
+            if (!changedAt) {
+                showToast('Please set a time.', 'error');
+                return;
+            }
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+
+            let imagePath = null;
+
+            // Upload image if selected
+            if (selectedImageFile) {
+                const fileName = `${userId}/${Date.now()}.jpg`;
+                const { data: uploadData, error: uploadError } = await sb.storage
+                    .from('nappy-images')
+                    .upload(fileName, selectedImageFile, { contentType: 'image/jpeg' });
+
+                if (uploadError) {
+                    showToast('Image upload failed: ' + uploadError.message, 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Entry';
+                    return;
+                }
+                imagePath = uploadData.path;
+            }
+
+            const entry = {
+                user_id: userId,
+                nappy_type: nappyType,
+                changed_at: new Date(changedAt).toISOString(),
+                image_path: imagePath,
+                notes: document.getElementById('notes').value.trim() || null,
+            };
+
+            const { error } = await sb.from('nappies').insert(entry);
+            if (error) {
+                showToast('Error saving: ' + error.message, 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Entry';
+                return;
+            }
+
+            showToast('Nappy logged!');
+            resetForm();
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Entry';
+            await loadEntries();
+            await loadChart();
+        }
+
+        function resetForm() {
+            selectedImageFile = null;
+            document.getElementById('notes').value = '';
+            document.getElementById('image-input').value = '';
+            document.getElementById('upload-area').classList.remove('has-image');
+            document.getElementById('upload-placeholder').style.display = 'block';
+            document.getElementById('upload-preview').style.display = 'none';
+            document.getElementById('upload-preview').innerHTML = '';
+            prefillTime();
+        }
+
+        // --- Load entries ---
+        async function loadEntries() {
+            const userId = await getUserId();
+            const { data, error } = await sb
+                .from('nappies')
+                .select('*')
+                .eq('user_id', userId)
+                .order('changed_at', { ascending: false })
+                .limit(20);
+
+            const container = document.getElementById('entry-list-container');
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👶</div>
+                        <div class="empty-state-text">No nappies logged yet</div>
+                    </div>`;
+                return;
+            }
+
+            // Get signed URLs for images
+            const entriesWithUrls = await Promise.all(data.map(async (entry) => {
+                if (entry.image_path) {
+                    const { data: signedData } = await sb.storage
+                        .from('nappy-images')
+                        .createSignedUrl(entry.image_path, 3600);
+                    entry._image_url = signedData?.signedUrl || null;
+                }
+                return entry;
+            }));
+
+            container.innerHTML = entriesWithUrls.map(entry => {
+                const icon = entry.nappy_type === 'wet' ? '💧' : entry.nappy_type === 'poo' ? '💩' : '💧💩';
+                const typeLabel = entry.nappy_type === 'both' ? 'Wet + Poo' : entry.nappy_type.charAt(0).toUpperCase() + entry.nappy_type.slice(1);
+                const notes = entry.notes ? ` · ${entry.notes}` : '';
+                const thumbnail = entry._image_url
+                    ? `<img src="${entry._image_url}" class="entry-thumbnail" onclick="openLightbox('${entry._image_url}')" alt="Photo">`
+                    : '';
+
+                return `
+                    <div class="entry-item">
+                        <div class="entry-icon">${icon}</div>
+                        <div class="entry-content">
+                            <div class="entry-title">${typeLabel}</div>
+                            <div class="entry-meta">${formatDateTime(entry.changed_at)}${notes}</div>
+                        </div>
+                        ${thumbnail}
+                        <div class="entry-actions">
+                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', ${entry.image_path ? "'" + entry.image_path + "'" : 'null'})" title="Delete">🗑</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // --- Lightbox ---
+        function openLightbox(url) {
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('lightbox').classList.add('open');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('open');
+        }
+
+        // --- Delete ---
+        function confirmDelete(id, imagePath) {
+            deleteId = id;
+            deleteImagePath = imagePath;
+            document.getElementById('delete-modal').style.display = 'flex';
+            document.getElementById('confirm-delete-btn').onclick = async () => {
+                // Delete image from storage if exists
+                if (deleteImagePath) {
+                    await sb.storage.from('nappy-images').remove([deleteImagePath]);
+                }
+                const { error } = await sb.from('nappies').delete().eq('id', deleteId);
+                if (error) {
+                    showToast('Error deleting: ' + error.message, 'error');
+                } else {
+                    showToast('Entry deleted');
+                }
+                closeDeleteModal();
+                await loadEntries();
+                await loadChart();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+            deleteId = null;
+            deleteImagePath = null;
+        }
+
+        // --- Chart ---
+        function setupRangeButtons() {
+            document.getElementById('date-range-bar').addEventListener('click', (e) => {
+                const btn = e.target.closest('.range-btn');
+                if (!btn) return;
+                document.querySelectorAll('#date-range-bar .range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = btn.dataset.range;
+                loadChart();
+            });
+        }
+
+        async function loadChart() {
+            const userId = await getUserId();
+            const { start, end } = getDateRange(currentRange);
+
+            const { data } = await sb
+                .from('nappies')
+                .select('changed_at, nappy_type')
+                .eq('user_id', userId)
+                .gte('changed_at', start)
+                .lte('changed_at', end)
+                .order('changed_at', { ascending: true });
+
+            const entries = data || [];
+            const labels = generateDateLabels();
+
+            const wetGrouped = {};
+            const pooGrouped = {};
+
+            entries.forEach(e => {
+                const day = new Date(e.changed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                if (e.nappy_type === 'wet' || e.nappy_type === 'both') wetGrouped[day] = (wetGrouped[day] || 0) + 1;
+                if (e.nappy_type === 'poo' || e.nappy_type === 'both') pooGrouped[day] = (pooGrouped[day] || 0) + 1;
+            });
+
+            function mapToLabels(labels, grouped) {
+                return labels.map(l => grouped[l] || 0);
+            }
+
+            function generateDateLabels() {
+                const { start } = getDateRange(currentRange);
+                const labels = [];
+                const d = new Date(start);
+                const now = new Date();
+                while (d <= now) {
+                    labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }));
+                    d.setDate(d.getDate() + 1);
+                }
+                return labels;
+            }
+
+            if (nappyChart) nappyChart.destroy();
+            nappyChart = new Chart(document.getElementById('nappy-chart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Wet',
+                            data: mapToLabels(labels, wetGrouped),
+                            backgroundColor: 'rgba(76, 201, 240, 0.15)',
+                            borderColor: '#4cc9f0',
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Poo',
+                            data: mapToLabels(labels, pooGrouped),
+                            backgroundColor: 'rgba(245, 166, 35, 0.15)',
+                            borderColor: '#f5a623',
+                            borderWidth: 1.5,
+                            borderRadius: 4,
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 12, padding: 12 },
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e2029',
+                            borderColor: '#2e3142',
+                            borderWidth: 1,
+                            padding: 10,
+                            cornerRadius: 8,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { maxRotation: 45, font: { size: 11 }, maxTicksLimit: 10 },
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            grid: { color: '#2e3142' },
+                            title: { display: true, text: 'Count', font: { size: 12 } },
+                            ticks: { font: { size: 11 }, precision: 0 },
+                        },
+                    },
+                },
+            });
+        }
+    </script>
+</body>
+</html>
