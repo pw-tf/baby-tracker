@@ -40,7 +40,7 @@
 
         // If already logged in, redirect
         (async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await sb.auth.getSession();
             if (session) window.location.href = 'dashboard.html';
         })();
 
@@ -57,7 +57,7 @@
             loginBtn.textContent = 'Signing in…';
             loginError.style.display = 'none';
 
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await sb.auth.signInWithPassword({ email, password });
 
             if (error) {
                 showError(error.message);
