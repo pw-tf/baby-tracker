@@ -859,6 +859,30 @@ body {
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* --- Edit Add Component Bar --- */
+.edit-add-bar {
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.edit-add-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.edit-add-buttons .btn {
+    flex: none;
+    width: auto;
 }
 
 /* --- Edit button icon --- */

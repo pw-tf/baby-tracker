@@ -736,6 +736,9 @@
         }
 
         // --- Edit Modal ---
+        let editSessionId = null;
+        let editRemovedIds = []; // IDs of existing records to delete on save
+
         async function openEditModal(sessionOrId) {
             const userId = await getUserId();
             // Try fetching by session_id first
@@ -750,6 +753,12 @@
             }
 
             editEntries = data;
+            editSessionId = data[0].session_id || uuid();
+            editRemovedIds = [];
+
+            // Ensure all entries share the session_id (for legacy entries without one)
+            editEntries.forEach(e => { e._editSessionId = editSessionId; });
+
             renderEditModal();
             document.getElementById('edit-modal').style.display = 'flex';
         }
@@ -758,13 +767,18 @@
             const body = document.getElementById('edit-modal-body');
             let html = '';
 
+            // Existing component cards
             editEntries.forEach((entry, idx) => {
                 const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
                 const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
                 const sideLabel = entry.breast_side ? ` (${entry.breast_side})` : '';
+                const isNew = !entry.id;
 
-                html += `<div class="edit-component-card">
-                    <div class="edit-component-header">${icon} ${typeLabel}${sideLabel}</div>`;
+                html += `<div class="edit-component-card" id="edit-card-${idx}">
+                    <div class="edit-component-header">
+                        <span>${icon} ${typeLabel}${sideLabel}</span>
+                        ${editEntries.length > 1 || isNew ? `<button class="btn-icon delete" onclick="removeEditComponent(${idx})" title="Remove component">🗑</button>` : ''}
+                    </div>`;
 
                 if (entry.feed_type === 'breast') {
                     html += `
@@ -774,11 +788,7 @@
                                 <button class="toggle-btn ${entry.breast_side === 'left' ? 'active' : ''}" onclick="setEditSide(${idx}, 'left', this)">Left</button>
                                 <button class="toggle-btn ${entry.breast_side === 'right' ? 'active' : ''}" onclick="setEditSide(${idx}, 'right', this)">Right</button>
                             </div>
-                        </div>`;
-                }
-
-                if (entry.feed_type === 'breast' || entry.feed_type === 'solids') {
-                    html += `
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Start Time</label>
                             <input type="datetime-local" class="form-input" id="edit-start-${idx}" value="${toDatetimeLocal(new Date(entry.start_time))}">
@@ -801,6 +811,18 @@
                         </div>`;
                 }
 
+                if (entry.feed_type === 'solids') {
+                    html += `
+                        <div class="form-group">
+                            <label class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-input" id="edit-start-${idx}" value="${toDatetimeLocal(new Date(entry.start_time))}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time</label>
+                            <input type="datetime-local" class="form-input" id="edit-end-${idx}" value="${entry.end_time ? toDatetimeLocal(new Date(entry.end_time)) : ''}">
+                        </div>`;
+                }
+
                 html += `
                     <div class="form-group">
                         <label class="form-label">Notes</label>
@@ -809,12 +831,78 @@
                 </div>`;
             });
 
+            // Add Component bar
+            html += `
+                <div class="edit-add-bar">
+                    <label class="form-label">Add Component</label>
+                    <div class="edit-add-buttons">
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast', 'left')">🤱 Left</button>
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast', 'right')">🤱 Right</button>
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">🍼 Bottle</button>
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">🥣 Solids</button>
+                    </div>
+                </div>`;
+
             html += `<div style="display:flex; gap:8px; margin-top:16px;">
                 <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1;">Cancel</button>
                 <button class="btn btn-primary" onclick="saveEdit()" style="flex:1;">Save Changes</button>
             </div>`;
 
             body.innerHTML = html;
+        }
+
+        function addEditComponent(feedType, side) {
+            // Collect current form values before re-render
+            collectEditFormValues();
+
+            // Reference time from existing entries
+            const refTime = editEntries.length > 0 ? editEntries[0].start_time : new Date().toISOString();
+
+            const newEntry = {
+                // no id means it's new and will be inserted on save
+                feed_type: feedType,
+                start_time: refTime,
+                end_time: feedType === 'bottle' ? refTime : null,
+                notes: null,
+            };
+            if (feedType === 'breast') newEntry.breast_side = side || 'left';
+            if (feedType === 'bottle') newEntry.volume_ml = null;
+
+            editEntries.push(newEntry);
+            renderEditModal();
+        }
+
+        function removeEditComponent(idx) {
+            // Collect form values first
+            collectEditFormValues();
+
+            const entry = editEntries[idx];
+            if (entry.id) {
+                // Existing DB record — mark for deletion
+                editRemovedIds.push(entry.id);
+            }
+            editEntries.splice(idx, 1);
+
+            if (editEntries.length === 0) {
+                closeEditModal();
+                return;
+            }
+            renderEditModal();
+        }
+
+        // Reads current form input values back into editEntries before re-render
+        function collectEditFormValues() {
+            editEntries.forEach((entry, i) => {
+                const startEl = document.getElementById(`edit-start-${i}`);
+                const endEl = document.getElementById(`edit-end-${i}`);
+                const volEl = document.getElementById(`edit-volume-${i}`);
+                const notesEl = document.getElementById(`edit-notes-${i}`);
+
+                if (startEl && startEl.value) entry.start_time = new Date(startEl.value).toISOString();
+                if (endEl) entry.end_time = endEl.value ? new Date(endEl.value).toISOString() : null;
+                if (volEl) entry.volume_ml = volEl.value ? Number(volEl.value) : null;
+                if (notesEl) entry.notes = notesEl.value.trim() || null;
+            });
         }
 
         function setEditSide(idx, side, btn) {
@@ -825,27 +913,52 @@
         }
 
         async function saveEdit() {
-            for (let i = 0; i < editEntries.length; i++) {
-                const entry = editEntries[i];
-                const updates = {};
+            const userId = await getUserId();
 
-                const startEl = document.getElementById(`edit-start-${i}`);
-                const endEl = document.getElementById(`edit-end-${i}`);
-                const volEl = document.getElementById(`edit-volume-${i}`);
-                const notesEl = document.getElementById(`edit-notes-${i}`);
+            // Collect final form values
+            collectEditFormValues();
 
-                if (startEl && startEl.value) updates.start_time = new Date(startEl.value).toISOString();
-                if (endEl) updates.end_time = endEl.value ? new Date(endEl.value).toISOString() : null;
-                if (volEl) updates.volume_ml = volEl.value ? Number(volEl.value) : null;
-                if (notesEl) updates.notes = notesEl.value.trim() || null;
-                if (entry.feed_type === 'breast') updates.breast_side = entry.breast_side;
-
-                const { error } = await sb.from('feedings').update(updates).eq('id', entry.id);
+            // 1. Delete removed components
+            for (const id of editRemovedIds) {
+                const { error } = await sb.from('feedings').delete().eq('id', id);
                 if (error) {
-                    showToast('Error updating: ' + error.message, 'error');
+                    showToast('Error removing component: ' + error.message, 'error');
                     return;
                 }
             }
+
+            // 2. Update existing + insert new
+            for (const entry of editEntries) {
+                const record = {
+                    feed_type: entry.feed_type,
+                    start_time: entry.start_time,
+                    end_time: entry.end_time || null,
+                    notes: entry.notes || null,
+                    breast_side: entry.feed_type === 'breast' ? entry.breast_side : null,
+                    volume_ml: entry.feed_type === 'bottle' ? (entry.volume_ml || null) : null,
+                    session_id: editSessionId,
+                };
+
+                if (entry.id) {
+                    // Update existing
+                    const { error } = await sb.from('feedings').update(record).eq('id', entry.id);
+                    if (error) {
+                        showToast('Error updating: ' + error.message, 'error');
+                        return;
+                    }
+                } else {
+                    // Insert new component
+                    record.user_id = userId;
+                    const { error } = await sb.from('feedings').insert(record);
+                    if (error) {
+                        showToast('Error adding component: ' + error.message, 'error');
+                        return;
+                    }
+                }
+            }
+
+            // 3. If original entries had no session_id, update them to share one now
+            // (this is already handled above since we set session_id on all updates)
 
             showToast('Feed updated!');
             closeEditModal();
@@ -856,6 +969,8 @@
         function closeEditModal() {
             document.getElementById('edit-modal').style.display = 'none';
             editEntries = null;
+            editSessionId = null;
+            editRemovedIds = [];
         }
 
         // --- Chart ---
