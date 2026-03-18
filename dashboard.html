@@ -34,6 +34,7 @@
                 <div class="summary-label">Feedings</div>
                 <div class="summary-value" id="sum-feedings">—</div>
                 <div class="summary-detail" id="sum-feedings-detail"></div>
+                <div class="summary-detail" id="sum-feedings-ml"></div>
             </a>
             <a href="nappy.html" class="summary-card">
                 <div class="summary-icon">👶</div>
@@ -169,6 +170,16 @@
                 ? `Last: ${formatTime(lastFeed.start_time)}`
                 : 'No data';
 
+            // Total mL today (Darwin timezone ACST = UTC+9:30)
+            const todayDarwin = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Darwin' }); // YYYY-MM-DD
+            const todayML = feedings
+                .filter(f => f.feed_type === 'bottle' && f.volume_ml &&
+                    new Date(f.start_time).toLocaleDateString('en-CA', { timeZone: 'Australia/Darwin' }) === todayDarwin)
+                .reduce((sum, f) => sum + (f.volume_ml || 0), 0);
+            document.getElementById('sum-feedings-ml').textContent = todayML > 0
+                ? `${todayML} mL today`
+                : '';
+
             // Nappies
             document.getElementById('sum-nappies').textContent = nappies.length;
             const wetCount = nappies.filter(n => n.nappy_type === 'wet' || n.nappy_type === 'both').length;
@@ -218,7 +229,7 @@
         function groupByDate(items, dateField) {
             const grouped = {};
             items.forEach(item => {
-                const day = new Date(item[dateField]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                const day = new Date(item[dateField]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
                 grouped[day] = (grouped[day] || 0) + 1;
             });
             return grouped;
@@ -230,7 +241,7 @@
             const d = new Date(start);
             const now = new Date();
             while (d <= now) {
-                labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }));
+                labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' }));
                 d.setDate(d.getDate() + 1);
             }
             return labels;
