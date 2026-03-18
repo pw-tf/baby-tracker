@@ -161,6 +161,10 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Feeding Frequency</span>
+                <div class="input-mode-toggle" style="margin:0;">
+                    <button class="mode-btn active" id="chart-view-bytype" onclick="setChartView('byType')">By Type</button>
+                    <button class="mode-btn" id="chart-view-total" onclick="setChartView('total')">Total</button>
+                </div>
             </div>
             <div class="date-range-bar" id="date-range-bar">
                 <button class="range-btn" data-range="24h">24h</button>
@@ -223,6 +227,7 @@
         let breastSide = 'left';
         let inputMode = 'timer';
         let currentRange = '7d';
+        let chartView = 'byType';
         let feedingChart = null;
 
         // Timer states
@@ -985,13 +990,20 @@
             });
         }
 
+        function setChartView(view) {
+            chartView = view;
+            document.getElementById('chart-view-bytype').classList.toggle('active', view === 'byType');
+            document.getElementById('chart-view-total').classList.toggle('active', view === 'total');
+            loadChart();
+        }
+
         async function loadChart() {
             const userId = await getUserId();
             const { start, end } = getDateRange(currentRange);
 
             const { data } = await sb
                 .from('feedings')
-                .select('start_time, feed_type, volume_ml')
+                .select('start_time, feed_type, volume_ml, session_id')
                 .eq('user_id', userId)
                 .gte('start_time', start)
                 .lte('start_time', end)
@@ -1000,19 +1012,13 @@
             const entries = data || [];
             const labels = generateDateLabels();
 
-            const breastGrouped = {};
-            const bottleGrouped = {};
-            const solidsGrouped = {};
+            // Always accumulate mL data for the overlay line
             const mlGrouped = {};
-
             entries.forEach(e => {
-                const day = new Date(e.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
-                if (e.feed_type === 'breast') breastGrouped[day] = (breastGrouped[day] || 0) + 1;
-                else if (e.feed_type === 'bottle') {
-                    bottleGrouped[day] = (bottleGrouped[day] || 0) + 1;
-                    if (e.volume_ml) mlGrouped[day] = (mlGrouped[day] || 0) + e.volume_ml;
+                if (e.feed_type === 'bottle' && e.volume_ml) {
+                    const day = new Date(e.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
+                    mlGrouped[day] = (mlGrouped[day] || 0) + e.volume_ml;
                 }
-                else solidsGrouped[day] = (solidsGrouped[day] || 0) + 1;
             });
 
             function mapToLabels(labels, grouped) {
@@ -1034,54 +1040,95 @@
             const mlData = mapToLabels(labels, mlGrouped);
             const hasML = mlData.some(v => v > 0);
 
+            let datasets;
+
+            if (chartView === 'total') {
+                // Count distinct sessions per day
+                const sessionsByDay = {};
+                entries.forEach(e => {
+                    const day = new Date(e.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
+                    if (!sessionsByDay[day]) sessionsByDay[day] = new Set();
+                    sessionsByDay[day].add(e.session_id || e.start_time);
+                });
+                const totalGrouped = {};
+                Object.keys(sessionsByDay).forEach(day => {
+                    totalGrouped[day] = sessionsByDay[day].size;
+                });
+                datasets = [{
+                    label: 'Total Sessions',
+                    data: mapToLabels(labels, totalGrouped),
+                    backgroundColor: 'rgba(108, 99, 255, 0.15)',
+                    borderColor: '#6c63ff',
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                }];
+            } else {
+                const breastGrouped = {};
+                const bottleGrouped = {};
+                const solidsGrouped = {};
+
+                entries.forEach(e => {
+                    const day = new Date(e.start_time).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
+                    if (e.feed_type === 'breast') breastGrouped[day] = (breastGrouped[day] || 0) + 1;
+                    else if (e.feed_type === 'bottle') bottleGrouped[day] = (bottleGrouped[day] || 0) + 1;
+                    else solidsGrouped[day] = (solidsGrouped[day] || 0) + 1;
+                });
+
+                datasets = [
+                    {
+                        label: 'Breast',
+                        data: mapToLabels(labels, breastGrouped),
+                        backgroundColor: 'rgba(108, 99, 255, 0.15)',
+                        borderColor: '#6c63ff',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Bottle',
+                        data: mapToLabels(labels, bottleGrouped),
+                        backgroundColor: 'rgba(76, 201, 240, 0.15)',
+                        borderColor: '#4cc9f0',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Solids',
+                        data: mapToLabels(labels, solidsGrouped),
+                        backgroundColor: 'rgba(245, 166, 35, 0.15)',
+                        borderColor: '#f5a623',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                        yAxisID: 'y',
+                    },
+                ];
+            }
+
+            // Add mL overlay line if there's bottle volume data
+            if (hasML) {
+                datasets.push({
+                    label: 'Bottle mL',
+                    data: mlData,
+                    type: 'line',
+                    borderColor: '#4cc9f0',
+                    backgroundColor: 'rgba(76, 201, 240, 0.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#4cc9f0',
+                    tension: 0.3,
+                    fill: true,
+                    yAxisID: 'y1',
+                });
+            }
+
+            const isStacked = chartView === 'byType';
+
             if (feedingChart) feedingChart.destroy();
             feedingChart = new Chart(document.getElementById('feeding-chart'), {
                 type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        {
-                            label: 'Breast',
-                            data: mapToLabels(labels, breastGrouped),
-                            backgroundColor: 'rgba(108, 99, 255, 0.15)',
-                            borderColor: '#6c63ff',
-                            borderWidth: 1.5,
-                            borderRadius: 4,
-                            yAxisID: 'y',
-                        },
-                        {
-                            label: 'Bottle',
-                            data: mapToLabels(labels, bottleGrouped),
-                            backgroundColor: 'rgba(76, 201, 240, 0.15)',
-                            borderColor: '#4cc9f0',
-                            borderWidth: 1.5,
-                            borderRadius: 4,
-                            yAxisID: 'y',
-                        },
-                        {
-                            label: 'Solids',
-                            data: mapToLabels(labels, solidsGrouped),
-                            backgroundColor: 'rgba(245, 166, 35, 0.15)',
-                            borderColor: '#f5a623',
-                            borderWidth: 1.5,
-                            borderRadius: 4,
-                            yAxisID: 'y',
-                        },
-                        ...(hasML ? [{
-                            label: 'Bottle mL',
-                            data: mlData,
-                            type: 'line',
-                            borderColor: '#4cc9f0',
-                            backgroundColor: 'rgba(76, 201, 240, 0.08)',
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointBackgroundColor: '#4cc9f0',
-                            tension: 0.3,
-                            fill: true,
-                            yAxisID: 'y1',
-                        }] : []),
-                    ]
-                },
+                data: { labels, datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1101,12 +1148,12 @@
                     },
                     scales: {
                         x: {
-                            stacked: true,
+                            stacked: isStacked,
                             grid: { display: false },
                             ticks: { maxRotation: 45, font: { size: 11 }, maxTicksLimit: 10 },
                         },
                         y: {
-                            stacked: true,
+                            stacked: isStacked,
                             beginAtZero: true,
                             grid: { color: '#2e3142' },
                             title: { display: true, text: 'Count', font: { size: 12 } },
