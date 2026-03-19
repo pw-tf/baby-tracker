@@ -1,0 +1,11 @@
+{
+    "name": "Baby Tracker Intercom",
+    "short_name": "Intercom",
+    "description": "Home intercom for the family",
+    "start_url": "/intercom.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0f1117",
+    "theme_color": "#0f1117",
+    "icons": []
+}

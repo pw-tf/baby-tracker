@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f1117">
+    <title>Intercom — Baby Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* --- Intercom-specific styles --- */
+        :root {
+            --ic-teal: #2ec4b6;
+            --ic-teal-hover: #3dd5c7;
+            --ic-teal-glow: rgba(46, 196, 182, 0.15);
+            --ic-warm: #ff6b6b;
+            --ic-warm-glow: rgba(255, 107, 107, 0.2);
+            --ic-amber: #f5a623;
+        }
+
+        .intercom-container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 16px 16px calc(var(--nav-height) + 40px) 16px;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .ic-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0 16px;
+        }
+
+        .ic-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .ic-settings-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .ic-settings-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- Config Screen --- */
+        .ic-config {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .ic-config-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .ic-config-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .ic-name-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ic-name-btn {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 14px;
+            min-height: 56px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-family: var(--font);
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .ic-name-btn.active {
+            background: var(--ic-teal-glow);
+            border-color: var(--ic-teal);
+            color: var(--ic-teal);
+        }
+
+        .ic-name-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* --- Intercom Screen --- */
+        .ic-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* --- Status Bar --- */
+        .ic-status-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ic-status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+        .ic-status-dot.waiting {
+            background: var(--ic-amber);
+            animation: pulse-amber 1.5s ease-in-out infinite;
+        }
+
+        .ic-status-dot.connecting {
+            background: var(--ic-amber);
+            animation: pulse-amber 0.8s ease-in-out infinite;
+        }
+
+        .ic-status-dot.connected {
+            background: var(--success);
+        }
+
+        .ic-status-dot.error {
+            background: var(--danger);
+        }
+
+        @keyframes pulse-amber {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .ic-status-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .ic-status-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* --- Mode Toggle --- */
+        .ic-mode-toggle {
+            display: flex;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+
+        .ic-mode-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            min-height: 44px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: var(--font);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .ic-mode-btn.active {
+            background: var(--ic-teal);
+            color: #fff;
+        }
+
+        /* --- PTT Area --- */
+        .ic-ptt-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .ic-ptt-btn {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 4px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-family: var(--font);
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .ic-ptt-btn .ptt-icon {
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+
+        .ic-ptt-btn .ptt-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ic-ptt-btn.transmitting {
+            border-color: var(--ic-warm);
+            background: var(--ic-warm-glow);
+            color: var(--ic-warm);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .ic-ptt-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* --- Open Mic Indicator --- */
+        .ic-openmic-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            min-height: 200px;
+        }
+
+        .ic-openmic-icon {
+            font-size: 3rem;
+            color: var(--ic-teal);
+        }
+
+        .ic-openmic-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* --- Audio Level Bar --- */
+        .ic-level-bar-container {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-input);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .ic-level-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--ic-teal);
+            border-radius: 3px;
+            transition: width 0.1s;
+        }
+
+        .ic-level-bar.active {
+            background: var(--success);
+        }
+
+        .ic-level-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        /* --- Controls Bar --- */
+        .ic-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+        }
+
+        .ic-mute-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .ic-mute-btn.muted {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .ic-mute-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ic-volume-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ic-volume-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .ic-volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-input);
+            outline: none;
+        }
+
+        .ic-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--ic-teal);
+            cursor: pointer;
+        }
+
+        .ic-volume-slider::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--ic-teal);
+            cursor: pointer;
+            border: none;
+        }
+
+        /* --- Notice --- */
+        .ic-notice {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 8px;
+        }
+
+        /* --- Error Screen --- */
+        .ic-error-box {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .ic-error-box p {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .ic-retry-btn {
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            min-height: 44px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: var(--font);
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* --- Dark mode already inherited from styles.css --- */
+        /* Light mode override if wanted */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #f5f5f7;
+                --bg-secondary: #e8e8ed;
+                --bg-card: #ffffff;
+                --bg-input: #f0f0f4;
+                --bg-hover: #e4e4ea;
+                --border: #d1d1d6;
+                --border-focus: #2ec4b6;
+                --text-primary: #1c1c1e;
+                --text-secondary: #636366;
+                --text-muted: #aeaeb2;
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+                --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Config Screen -->
+    <div class="intercom-container" id="config-screen" style="display: none;">
+        <div class="ic-config">
+            <div>
+                <div class="ic-config-title">Home Intercom</div>
+                <div class="ic-config-subtitle">Choose your name to get started</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">I am</label>
+                <div class="ic-name-options">
+                    <button class="ic-name-btn" data-name="Mum" onclick="selectName('Mum')">Mum</button>
+                    <button class="ic-name-btn" data-name="Dad" onclick="selectName('Dad')">Dad</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="custom-name">Or enter a name</label>
+                <input type="text" id="custom-name" class="form-input" placeholder="e.g. Grandma" maxlength="20">
+            </div>
+            <button class="btn btn-primary" id="connect-btn" onclick="saveConfigAndConnect()" style="background: var(--ic-teal);">Connect</button>
+        </div>
+    </div>
+
+    <!-- Intercom Screen -->
+    <div class="intercom-container" id="intercom-screen" style="display: none;">
+        <!-- Header -->
+        <div class="ic-header">
+            <span class="ic-title">Intercom</span>
+            <button class="ic-settings-btn" onclick="showConfig()" title="Settings">⚙️</button>
+        </div>
+
+        <!-- Status -->
+        <div class="ic-status-bar">
+            <div class="ic-status-dot waiting" id="status-dot"></div>
+            <div>
+                <div class="ic-status-text" id="status-text">Connecting…</div>
+                <div class="ic-status-name" id="status-name"></div>
+            </div>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="ic-mode-toggle">
+            <button class="ic-mode-btn active" data-mode="ptt" onclick="setMode('ptt')">Push to Talk</button>
+            <button class="ic-mode-btn" data-mode="open" onclick="setMode('open')">Open Mic</button>
+        </div>
+
+        <!-- PTT Mode -->
+        <div class="ic-ptt-area" id="ptt-area">
+            <button class="ic-ptt-btn" id="ptt-btn" disabled>
+                <span class="ptt-icon">🎙️</span>
+                <span class="ptt-label">Hold to Talk</span>
+            </button>
+        </div>
+
+        <!-- Open Mic Mode -->
+        <div class="ic-openmic-area" id="openmic-area" style="display: none;">
+            <div class="ic-openmic-icon">🎙️</div>
+            <div class="ic-openmic-text" id="openmic-text">Mic is live</div>
+        </div>
+
+        <!-- Audio Level -->
+        <div>
+            <div class="ic-level-label">Incoming audio</div>
+            <div class="ic-level-bar-container">
+                <div class="ic-level-bar" id="level-bar"></div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="ic-controls">
+            <button class="ic-mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute">🎤</button>
+            <div class="ic-volume-group">
+                <span class="ic-volume-label">Volume</span>
+                <input type="range" class="ic-volume-slider" id="volume-slider" min="0" max="100" value="80">
+            </div>
+        </div>
+
+        <!-- Error display -->
+        <div class="ic-error-box" id="error-box" style="display: none;">
+            <p id="error-text"></p>
+            <button class="ic-retry-btn" onclick="retryConnection()">Retry</button>
+        </div>
+
+        <!-- Notice -->
+        <div class="ic-notice">
+            For best results keep the app open, or add to your home screen.
+        </div>
+    </div>
+
+    <!-- Remote audio element -->
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+    <!-- Nav -->
+    <nav class="bottom-nav" id="main-nav"></nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // ============================================================
+        //  Home Intercom — WebRTC + Supabase Realtime Broadcast
+        // ============================================================
+
+        initNav('intercom.html');
+
+        // --- State ---
+        let myName = localStorage.getItem('ic_name') || '';
+        let mode = 'ptt'; // 'ptt' or 'open'
+        let isMuted = false;
+        let channel = null;
+        let peerConnection = null;
+        let localStream = null;
+        let audioContext = null;
+        let gainNode = null;
+        let analyser = null;
+        let silentOsc = null;
+        let wakeLock = null;
+        let peerName = '';
+        let isConnected = false;
+        let pendingCandidates = [];
+        let isPolite = false; // collision handling: true = we yield
+        let makingOffer = false;
+        let ignoreOffer = false;
+
+        // --- Elements ---
+        const configScreen = document.getElementById('config-screen');
+        const intercomScreen = document.getElementById('intercom-screen');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const statusName = document.getElementById('status-name');
+        const pttArea = document.getElementById('ptt-area');
+        const pttBtn = document.getElementById('ptt-btn');
+        const openmicArea = document.getElementById('openmic-area');
+        const openmicText = document.getElementById('openmic-text');
+        const muteBtn = document.getElementById('mute-btn');
+        const volumeSlider = document.getElementById('volume-slider');
+        const levelBar = document.getElementById('level-bar');
+        const errorBox = document.getElementById('error-box');
+        const errorTextEl = document.getElementById('error-text');
+        const remoteAudio = document.getElementById('remote-audio');
+
+        // ============================================================
+        //  Init
+        // ============================================================
+        (async function init() {
+            // Check browser support
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('Your browser does not support microphone access. Please use a modern browser.');
+                return;
+            }
+            if (!window.RTCPeerConnection) {
+                showError('Your browser does not support WebRTC. Please use a modern browser.');
+                return;
+            }
+
+            if (myName) {
+                startIntercom();
+            } else {
+                configScreen.style.display = 'flex';
+            }
+        })();
+
+        // ============================================================
+        //  Config
+        // ============================================================
+        function selectName(name) {
+            document.querySelectorAll('.ic-name-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.name === name)
+            );
+            document.getElementById('custom-name').value = '';
+            myName = name;
+        }
+
+        function saveConfigAndConnect() {
+            const custom = document.getElementById('custom-name').value.trim();
+            if (custom) myName = custom;
+            if (!myName) {
+                showToast('Please choose or enter a name', 'error');
+                return;
+            }
+            localStorage.setItem('ic_name', myName);
+            startIntercom();
+        }
+
+        function showConfig() {
+            cleanup();
+            intercomScreen.style.display = 'none';
+            configScreen.style.display = 'flex';
+            // Pre-select current name
+            document.querySelectorAll('.ic-name-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.name === myName)
+            );
+            if (myName !== 'Mum' && myName !== 'Dad') {
+                document.getElementById('custom-name').value = myName;
+            }
+        }
+
+        // ============================================================
+        //  Start Intercom
+        // ============================================================
+        async function startIntercom() {
+            configScreen.style.display = 'none';
+            intercomScreen.style.display = 'flex';
+            errorBox.style.display = 'none';
+
+            setStatus('waiting', 'Requesting microphone…');
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (err) {
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    showError('Microphone access denied. Please allow microphone access in your browser settings and reload.');
+                } else {
+                    showError('Could not access microphone: ' + err.message);
+                }
+                return;
+            }
+
+            // Start muted in PTT mode
+            if (mode === 'ptt') {
+                localStream.getAudioTracks()[0].enabled = false;
+            }
+
+            setupAudioContext();
+            await requestWakeLock();
+            connectToChannel();
+            setupPTT();
+            setupVolumeControl();
+        }
+
+        // ============================================================
+        //  Audio Context (for background audio + level meter)
+        // ============================================================
+        function setupAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Silent oscillator to keep audio context alive on mobile
+            silentOsc = audioContext.createOscillator();
+            const silentGain = audioContext.createGain();
+            silentGain.gain.value = 0;
+            silentOsc.connect(silentGain);
+            silentGain.connect(audioContext.destination);
+            silentOsc.start();
+
+            // Gain node for volume control
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = volumeSlider.value / 100;
+            gainNode.connect(audioContext.destination);
+
+            // Analyser for level meter
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.connect(gainNode);
+
+            // Resume on user interaction (iOS)
+            document.addEventListener('touchstart', resumeAudio, { once: true });
+            document.addEventListener('click', resumeAudio, { once: true });
+        }
+
+        function resumeAudio() {
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        function startLevelMeter() {
+            if (!analyser) return;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+
+            function tick() {
+                if (!analyser) return;
+                analyser.getByteFrequencyData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) sum += data[i];
+                const avg = sum / data.length;
+                const pct = Math.min(100, (avg / 128) * 100);
+                levelBar.style.width = pct + '%';
+                levelBar.classList.toggle('active', pct > 5);
+                requestAnimationFrame(tick);
+            }
+            tick();
+        }
+
+        // ============================================================
+        //  Wake Lock
+        // ============================================================
+        async function requestWakeLock() {
+            if (!('wakeLock' in navigator)) return;
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => { wakeLock = null; });
+                // Re-acquire on visibility change
+                document.addEventListener('visibilitychange', async () => {
+                    if (document.visibilityState === 'visible' && !wakeLock) {
+                        try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+                    }
+                });
+            } catch (_) {}
+        }
+
+        // ============================================================
+        //  Supabase Realtime Channel
+        // ============================================================
+        function connectToChannel() {
+            setStatus('waiting', 'Waiting for other person…');
+            statusName.textContent = 'You are ' + myName;
+
+            channel = sb.channel('home-intercom', {
+                config: { broadcast: { self: false }, presence: { key: myName } }
+            });
+
+            // Presence: detect peer
+            channel.on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const keys = Object.keys(state);
+                const others = keys.filter(k => k !== myName);
+
+                if (others.length > 0) {
+                    peerName = others[0];
+                    // Polite peer: alphabetically later name yields
+                    isPolite = myName > peerName;
+
+                    if (!isConnected && (!peerConnection || peerConnection.connectionState === 'closed' || peerConnection.connectionState === 'failed')) {
+                        startWebRTC();
+                    }
+                } else {
+                    peerName = '';
+                    setStatus('waiting', 'Waiting for other person…');
+                    pttBtn.disabled = true;
+                    isConnected = false;
+                    if (peerConnection) {
+                        peerConnection.close();
+                        peerConnection = null;
+                    }
+                }
+            });
+
+            channel.on('presence', { event: 'leave', key: '*' }, ({ key }) => {
+                if (key !== myName) {
+                    peerName = '';
+                    setStatus('waiting', 'Waiting for other person…');
+                    pttBtn.disabled = true;
+                    isConnected = false;
+                    if (peerConnection) {
+                        peerConnection.close();
+                        peerConnection = null;
+                    }
+                }
+            });
+
+            // Signaling
+            channel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+                if (!payload || payload.from === myName) return;
+                await handleSignal(payload);
+            });
+
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({ name: myName, joinedAt: Date.now() });
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    showError('Could not connect to signaling server. Check your internet connection.');
+                }
+            });
+        }
+
+        // ============================================================
+        //  WebRTC
+        // ============================================================
+        function startWebRTC() {
+            setStatus('connecting', 'Connecting to ' + peerName + '…');
+
+            peerConnection = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            });
+
+            // Add local audio
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // Remote audio
+            peerConnection.ontrack = (event) => {
+                const remoteStream = event.streams[0];
+                remoteAudio.srcObject = remoteStream;
+
+                // Route through audio context for level meter + volume control
+                if (audioContext) {
+                    try {
+                        const source = audioContext.createMediaStreamSource(remoteStream);
+                        source.connect(analyser);
+                        startLevelMeter();
+                    } catch (_) {}
+                }
+            };
+
+            // ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal({ type: 'ice-candidate', data: event.candidate.toJSON() });
+                }
+            };
+
+            // Connection state
+            peerConnection.onconnectionstatechange = () => {
+                const state = peerConnection?.connectionState;
+                if (state === 'connected') {
+                    isConnected = true;
+                    setStatus('connected', 'Connected to ' + peerName);
+                    pttBtn.disabled = false;
+                } else if (state === 'disconnected' || state === 'failed') {
+                    isConnected = false;
+                    setStatus('error', 'Connection lost. Reconnecting…');
+                    pttBtn.disabled = true;
+                    // Auto-retry
+                    setTimeout(() => {
+                        if (peerName && (!peerConnection || peerConnection.connectionState === 'failed')) {
+                            startWebRTC();
+                        }
+                    }, 2000);
+                }
+            };
+
+            // Negotiation needed (perfect negotiation pattern)
+            peerConnection.onnegotiationneeded = async () => {
+                try {
+                    makingOffer = true;
+                    await peerConnection.setLocalDescription();
+                    sendSignal({ type: 'offer', data: peerConnection.localDescription.toJSON() });
+                } catch (err) {
+                    console.error('Negotiation error:', err);
+                } finally {
+                    makingOffer = false;
+                }
+            };
+        }
+
+        async function handleSignal(payload) {
+            const { type, data } = payload;
+
+            if (type === 'offer' || type === 'answer') {
+                if (!peerConnection) {
+                    startWebRTC();
+                }
+
+                const desc = new RTCSessionDescription(data);
+
+                if (type === 'offer') {
+                    // Perfect negotiation: handle collision
+                    const offerCollision = makingOffer || peerConnection.signalingState !== 'stable';
+                    ignoreOffer = !isPolite && offerCollision;
+                    if (ignoreOffer) return;
+
+                    await peerConnection.setRemoteDescription(desc);
+                    await peerConnection.setLocalDescription();
+                    sendSignal({ type: 'answer', data: peerConnection.localDescription.toJSON() });
+                } else {
+                    // answer
+                    if (peerConnection.signalingState === 'have-local-offer') {
+                        await peerConnection.setRemoteDescription(desc);
+                    }
+                }
+
+                // Flush pending ICE candidates
+                for (const c of pendingCandidates) {
+                    try { await peerConnection.addIceCandidate(c); } catch (_) {}
+                }
+                pendingCandidates = [];
+
+            } else if (type === 'ice-candidate') {
+                const candidate = new RTCIceCandidate(data);
+                if (peerConnection && peerConnection.remoteDescription) {
+                    try { await peerConnection.addIceCandidate(candidate); } catch (_) {}
+                } else {
+                    pendingCandidates.push(candidate);
+                }
+            }
+        }
+
+        function sendSignal(payload) {
+            if (!channel) return;
+            channel.send({
+                type: 'broadcast',
+                event: 'signal',
+                payload: { from: myName, ...payload }
+            });
+        }
+
+        // ============================================================
+        //  Mode / PTT / Mute
+        // ============================================================
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.ic-mode-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.mode === m)
+            );
+
+            if (m === 'ptt') {
+                pttArea.style.display = 'flex';
+                openmicArea.style.display = 'none';
+                // Mute mic (will unmute on hold)
+                if (localStream && !isMuted) {
+                    localStream.getAudioTracks()[0].enabled = false;
+                }
+            } else {
+                pttArea.style.display = 'none';
+                openmicArea.style.display = 'flex';
+                // Unmute mic (unless manually muted)
+                if (localStream && !isMuted) {
+                    localStream.getAudioTracks()[0].enabled = true;
+                }
+                updateOpenmicText();
+            }
+        }
+
+        function updateOpenmicText() {
+            if (isMuted) {
+                openmicText.textContent = 'Mic is muted';
+                openmicText.style.color = 'var(--danger)';
+            } else {
+                openmicText.textContent = 'Mic is live';
+                openmicText.style.color = 'var(--ic-teal)';
+            }
+        }
+
+        function setupPTT() {
+            // Touch events
+            pttBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startTransmit();
+            }, { passive: false });
+
+            pttBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopTransmit();
+            });
+
+            pttBtn.addEventListener('touchcancel', () => {
+                stopTransmit();
+            });
+
+            // Mouse events (desktop)
+            pttBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startTransmit();
+            });
+
+            pttBtn.addEventListener('mouseup', () => {
+                stopTransmit();
+            });
+
+            pttBtn.addEventListener('mouseleave', () => {
+                stopTransmit();
+            });
+
+            // Prevent context menu on long press
+            pttBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        function startTransmit() {
+            if (!localStream || pttBtn.disabled || mode !== 'ptt' || isMuted) return;
+            resumeAudio();
+            localStream.getAudioTracks()[0].enabled = true;
+            pttBtn.classList.add('transmitting');
+            pttBtn.querySelector('.ptt-label').textContent = 'Transmitting';
+        }
+
+        function stopTransmit() {
+            if (!localStream || mode !== 'ptt') return;
+            localStream.getAudioTracks()[0].enabled = false;
+            pttBtn.classList.remove('transmitting');
+            pttBtn.querySelector('.ptt-label').textContent = 'Hold to Talk';
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            isMuted = !isMuted;
+            muteBtn.classList.toggle('muted', isMuted);
+            muteBtn.textContent = isMuted ? '🔇' : '🎤';
+
+            if (isMuted) {
+                localStream.getAudioTracks()[0].enabled = false;
+            } else if (mode === 'open') {
+                localStream.getAudioTracks()[0].enabled = true;
+            }
+            // In PTT mode, mic stays off until held (even if unmuted)
+
+            if (mode === 'open') updateOpenmicText();
+        }
+
+        // ============================================================
+        //  Volume Control
+        // ============================================================
+        function setupVolumeControl() {
+            volumeSlider.addEventListener('input', () => {
+                const vol = volumeSlider.value / 100;
+                remoteAudio.volume = vol;
+                if (gainNode) gainNode.gain.value = vol;
+            });
+            // Set initial
+            remoteAudio.volume = volumeSlider.value / 100;
+        }
+
+        // ============================================================
+        //  Status / Error Helpers
+        // ============================================================
+        function setStatus(state, text) {
+            statusDot.className = 'ic-status-dot ' + state;
+            statusText.textContent = text;
+            if (state !== 'error') {
+                errorBox.style.display = 'none';
+            }
+        }
+
+        function showError(msg) {
+            errorBox.style.display = 'block';
+            errorTextEl.textContent = msg;
+            setStatus('error', 'Error');
+        }
+
+        function retryConnection() {
+            errorBox.style.display = 'none';
+            cleanup();
+            startIntercom();
+        }
+
+        // ============================================================
+        //  Cleanup
+        // ============================================================
+        function cleanup() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (channel) {
+                channel.unsubscribe();
+                channel = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            if (silentOsc) {
+                try { silentOsc.stop(); } catch (_) {}
+                silentOsc = null;
+            }
+            if (audioContext) {
+                try { audioContext.close(); } catch (_) {}
+                audioContext = null;
+                analyser = null;
+                gainNode = null;
+            }
+            if (wakeLock) {
+                try { wakeLock.release(); } catch (_) {}
+                wakeLock = null;
+            }
+            isConnected = false;
+            peerName = '';
+            pendingCandidates = [];
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', cleanup);
+    </script>
+</body>
+</html>
