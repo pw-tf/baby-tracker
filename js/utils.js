@@ -120,6 +120,7 @@ function initNav(activePage) {
         { href: 'nappy.html', label: 'Nappy', icon: '👶' },
         { href: 'sleep.html', label: 'Sleep', icon: '😴' },
         { href: 'weight.html', label: 'Weight', icon: '⚖️' },
+        { href: 'intercom.html', label: 'Intercom', icon: '📞' },
     ];
 
     nav.innerHTML = pages.map(p => `
