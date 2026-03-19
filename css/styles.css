@@ -36,6 +36,7 @@
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
     --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --nav-height: 64px;
+    --section-gap: 16px;
 }
 
 /* --- Reset & Base --- */
@@ -59,11 +60,27 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* #30 — Prevent background scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* #36 — Remove WebKit tap highlight globally */
+a, button, input, select, textarea, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* #37 — Disable 300ms tap delay on interactive elements */
+a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summary-card {
+    touch-action: manipulation;
+}
+
 /* --- Layout --- */
 .app-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: 16px 16px calc(var(--nav-height) + 24px) 16px;
+    /* #13 — Extra bottom padding to clear nav */
+    padding: 16px 16px calc(var(--nav-height) + 40px) 16px;
 }
 
 .page-header {
@@ -111,7 +128,9 @@ body {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 6px 14px;
+    /* #1 — 44px touch target */
+    padding: 10px 16px;
+    min-height: 44px;
     border-radius: var(--radius-sm);
     font-size: 0.8rem;
     cursor: pointer;
@@ -140,19 +159,22 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* #2 — Improved nav item sizing and active indicator */
 .nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     text-decoration: none;
     color: var(--text-muted);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    padding: 6px 8px;
+    /* #1 — 44px touch target */
+    padding: 10px 12px;
     border-radius: var(--radius-sm);
     transition: color 0.2s;
     min-width: 56px;
+    position: relative;
 }
 
 .nav-item:hover,
@@ -160,8 +182,20 @@ body {
     color: var(--accent);
 }
 
+/* #2 — Active top-border indicator */
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 0 0 2px 2px;
+}
+
 .nav-icon {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     line-height: 1;
 }
 
@@ -175,7 +209,8 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 16px;
-    margin-bottom: 12px;
+    /* #4 — Consistent section spacing */
+    margin-bottom: var(--section-gap);
 }
 
 .card-header {
@@ -194,26 +229,36 @@ body {
 }
 
 /* --- Summary Cards (Dashboard) --- */
+/* #6 — Already using 1fr 1fr (correct) */
 .summary-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 20px;
+    /* #4 — Consistent section spacing */
+    margin-bottom: var(--section-gap);
 }
 
+/* #5 — Summary cards get slightly lighter bg for hierarchy */
 .summary-card {
-    background: var(--bg-card);
+    background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 16px;
     text-decoration: none;
     color: inherit;
+    /* #35 — Promote to compositing layer */
+    will-change: transform;
     transition: border-color 0.2s, transform 0.15s;
 }
 
 .summary-card:hover {
     border-color: var(--accent);
     transform: translateY(-1px);
+}
+
+/* #7 — Touch feedback on summary cards */
+.summary-card:active {
+    transform: scale(0.98);
 }
 
 .summary-card .summary-icon {
@@ -242,6 +287,7 @@ body {
 }
 
 /* --- Date Range Selector --- */
+/* #3 — Add scroll fade hint */
 .date-range-bar {
     display: flex;
     gap: 6px;
@@ -250,17 +296,20 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 2px;
+    position: relative;
 }
 
 .date-range-bar::-webkit-scrollbar {
     display: none;
 }
 
+/* #1 — Larger touch targets for range pills */
 .range-btn {
     background: var(--bg-input);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 6px 14px;
+    padding: 10px 16px;
+    min-height: 44px;
     border-radius: 20px;
     font-size: 0.8rem;
     font-family: var(--font);
@@ -285,14 +334,14 @@ body {
     margin-bottom: 16px;
 }
 
+/* #32 — Larger, more readable form labels */
 .form-label {
     display: block;
-    font-size: 0.8rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
 }
 
 .form-input,
@@ -336,12 +385,14 @@ body {
     gap: 6px;
 }
 
+/* #1, #12, #19 — 44px min-height touch targets for toggles */
 .toggle-btn {
     flex: 1;
     background: var(--bg-input);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 10px 12px;
+    padding: 12px 16px;
+    min-height: 44px;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
     font-family: var(--font);
@@ -362,6 +413,11 @@ body {
     font-weight: 600;
 }
 
+/* #26 — Active press feedback on toggle buttons */
+.toggle-btn:active {
+    transform: scale(0.97);
+}
+
 /* --- Buttons --- */
 .btn {
     display: inline-flex;
@@ -369,14 +425,22 @@ body {
     justify-content: center;
     gap: 8px;
     padding: 12px 24px;
+    min-height: 44px;
     border-radius: var(--radius-sm);
     font-size: 0.95rem;
     font-weight: 600;
     font-family: var(--font);
     cursor: pointer;
     border: none;
+    /* #35 — Promote to compositing layer */
+    will-change: transform;
     transition: all 0.2s;
     width: 100%;
+}
+
+/* Active press state for all buttons */
+.btn:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn-primary {
@@ -421,14 +485,16 @@ body {
 }
 
 /* --- Timer --- */
+/* #10, #22 — Reduced timer vertical space */
 .timer-display {
     text-align: center;
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 12px;
+    margin-bottom: 12px;
 }
 
+/* #10, #22 — Slightly smaller timer font */
 .timer-time {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
@@ -484,15 +550,19 @@ body {
     color: var(--text-secondary);
 }
 
+/* #5, #14 — Entry items with left accent border and consistent layout */
 .entry-item {
     background: var(--bg-card);
     border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
     border-radius: var(--radius-md);
     padding: 14px 16px;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
     gap: 14px;
+    min-height: 56px;
     transition: border-color 0.2s;
 }
 
@@ -521,25 +591,34 @@ body {
     color: var(--text-muted);
 }
 
+/* #34 — Slightly bolder timestamps for scannability */
 .entry-time {
     font-size: 0.8rem;
     color: var(--text-secondary);
+    font-weight: 500;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
+/* #15 — Larger gap between edit/delete actions */
 .entry-actions {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     flex-shrink: 0;
 }
 
+/* #1, #15 — 44px touch targets for icon buttons */
 .btn-icon {
     background: transparent;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 6px;
+    padding: 10px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     transition: color 0.2s, background 0.2s;
@@ -555,16 +634,22 @@ body {
 }
 
 /* --- Chart Container --- */
+/* #8, #9 — Wrapped in card-like styling with consistent spacing */
 .chart-container {
     position: relative;
     width: 100%;
     height: 220px;
-    margin-top: 8px;
+    margin-top: var(--section-gap);
 }
 
 .chart-container canvas {
     width: 100% !important;
     height: 100% !important;
+}
+
+/* #17 — Spacing between chart title row and range buttons */
+.chart-container .card-header {
+    margin-bottom: var(--section-gap);
 }
 
 /* --- Toast --- */
@@ -651,9 +736,10 @@ body {
 }
 
 /* --- Empty State --- */
+/* #25 — Tighter empty state padding on mobile */
 .empty-state {
     text-align: center;
-    padding: 40px 20px;
+    padding: 24px 16px;
     color: var(--text-muted);
 }
 
@@ -709,7 +795,8 @@ body {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    padding: 8px 12px;
+    padding: 10px 12px;
+    min-height: 44px;
     border-radius: 6px;
     font-size: 0.85rem;
     font-family: var(--font);
@@ -729,8 +816,9 @@ body {
     gap: 6px;
 }
 
+/* #33 — More readable component hint text */
 .component-hint {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 8px;
     font-style: italic;
@@ -824,17 +912,38 @@ body {
     padding: 16px;
 }
 
+/* #29 — Wider delete confirmation modal */
 .modal-card {
-    max-width: 320px;
+    max-width: 360px;
+    width: calc(100% - 48px);
     margin: auto;
     text-align: center;
 }
 
+/* #16 — Bottom-sheet style edit modal on mobile */
 .modal-card-wide {
     max-width: 480px;
+    width: calc(100% - 32px);
     text-align: left;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+}
+
+/* #16 — Drag handle for bottom sheet modal */
+.modal-card-wide::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--text-muted);
+    border-radius: 2px;
+    margin: 0 auto 12px;
 }
 
 .modal-header {
@@ -865,11 +974,12 @@ body {
 }
 
 /* --- Edit Add Component Bar --- */
+/* #18 — Modern solid border instead of dashed */
 .edit-add-bar {
     margin-top: 12px;
     padding: 14px;
     background: var(--bg-input);
-    border: 1px dashed var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
 }
 
@@ -880,9 +990,11 @@ body {
     margin-top: 8px;
 }
 
+/* #31 — 44px min-height for add component buttons */
 .edit-add-buttons .btn {
     flex: none;
     width: auto;
+    min-height: 44px;
 }
 
 /* --- Edit button icon --- */
@@ -890,10 +1002,65 @@ body {
     color: var(--accent);
 }
 
+/* #21 — Nappy entry accent colors */
+.entry-item.nappy-wet {
+    border-left-color: var(--info);
+}
+
+.entry-item.nappy-poo {
+    border-left-color: var(--warning);
+}
+
+.entry-item.nappy-both {
+    border-left-color: var(--accent);
+}
+
+/* #27 — Weight delta values: slightly larger and bolder */
+.weight-delta {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* #3 — Scroll fade hint for date range bar */
+.date-range-wrapper {
+    position: relative;
+}
+
+.date-range-wrapper::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 32px;
+    background: linear-gradient(to right, transparent, var(--bg-primary));
+    pointer-events: none;
+    border-radius: 0 20px 20px 0;
+}
+
 /* --- Responsive --- */
 @media (min-width: 480px) {
     .app-container {
-        padding: 20px 24px calc(var(--nav-height) + 24px) 24px;
+        padding: 20px 24px calc(var(--nav-height) + 40px) 24px;
+    }
+
+    /* On wider screens, revert modal to centered */
+    .modal-card-wide {
+        position: static;
+        transform: none;
+        border-radius: var(--radius-lg);
+        margin: auto;
+    }
+
+    .modal-card-wide::before {
+        display: none;
+    }
+}
+
+/* #11 — Stack dual timers on very narrow screens */
+@media (max-width: 374px) {
+    .dual-timer-grid {
+        grid-template-columns: 1fr;
     }
 }
 
