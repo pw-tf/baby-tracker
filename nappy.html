@@ -8,20 +8,23 @@
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .image-upload-area {
-            border: 2px dashed var(--border);
+            border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 24px;
             text-align: center;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
             position: relative;
+            min-height: 44px;
         }
         .image-upload-area:hover {
             border-color: var(--accent);
             background: var(--accent-glow);
         }
+        .image-upload-area:active {
+            transform: scale(0.98);
+        }
         .image-upload-area.has-image {
-            border-style: solid;
             padding: 8px;
         }
         .image-upload-area input[type="file"] {
@@ -423,7 +426,7 @@
                     : '';
 
                 return `
-                    <div class="entry-item">
+                    <div class="entry-item nappy-${entry.nappy_type}">
                         <div class="entry-icon">${icon}</div>
                         <div class="entry-content">
                             <div class="entry-title">${typeLabel}</div>
@@ -452,6 +455,7 @@
             deleteId = id;
             deleteImagePath = imagePath;
             document.getElementById('delete-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
             document.getElementById('confirm-delete-btn').onclick = async () => {
                 // Delete image from storage if exists
                 if (deleteImagePath) {
@@ -471,6 +475,7 @@
 
         function closeDeleteModal() {
             document.getElementById('delete-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
             deleteId = null;
             deleteImagePath = null;
         }

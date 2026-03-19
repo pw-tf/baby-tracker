@@ -715,6 +715,7 @@
             deleteSessionId = sessionId || null;
             const modal = document.getElementById('delete-modal');
             modal.style.display = 'flex';
+            document.body.classList.add('modal-open');
             document.getElementById('confirm-delete-btn').onclick = async () => {
                 let error;
                 if (deleteSessionId) {
@@ -736,6 +737,7 @@
 
         function closeDeleteModal() {
             document.getElementById('delete-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
             deleteId = null;
             deleteSessionId = null;
         }
@@ -766,6 +768,7 @@
 
             renderEditModal();
             document.getElementById('edit-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
         }
 
         function renderEditModal() {
@@ -973,6 +976,7 @@
 
         function closeEditModal() {
             document.getElementById('edit-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
             editEntries = null;
             editSessionId = null;
             editRemovedIds = [];

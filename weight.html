@@ -234,9 +234,9 @@
                     const diffDisplay = weightUnit === 'lbs'
                         ? (diff * 2.20462).toFixed(2)
                         : diff.toFixed(2);
-                    if (diff > 0) changeText = `<span style="color: var(--success);">+${diffDisplay}</span>`;
-                    else if (diff < 0) changeText = `<span style="color: var(--danger);">${diffDisplay}</span>`;
-                    else changeText = `<span style="color: var(--text-muted);">±0</span>`;
+                    if (diff > 0) changeText = `<span class="weight-delta" style="color: var(--success);">+${diffDisplay}</span>`;
+                    else if (diff < 0) changeText = `<span class="weight-delta" style="color: var(--danger);">${diffDisplay}</span>`;
+                    else changeText = `<span class="weight-delta" style="color: var(--text-muted);">±0</span>`;
                 }
 
                 const notes = entry.notes ? ` · ${entry.notes}` : '';
@@ -259,6 +259,7 @@
         function confirmDelete(id) {
             deleteId = id;
             document.getElementById('delete-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
             document.getElementById('confirm-delete-btn').onclick = async () => {
                 const { error } = await sb.from('weights').delete().eq('id', deleteId);
                 if (error) {
@@ -274,6 +275,7 @@
 
         function closeDeleteModal() {
             document.getElementById('delete-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
             deleteId = null;
         }
 
