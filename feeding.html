@@ -28,92 +28,10 @@
         <div class="card">
             <label class="form-label">Feed Components</label>
             <div class="component-toggles">
-                <button class="toggle-btn component-toggle active" data-component="breast" onclick="toggleComponent('breast')">🤱 Breast</button>
-                <button class="toggle-btn component-toggle" data-component="bottle" onclick="toggleComponent('bottle')">🍼 Bottle</button>
+                <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')">🍼 Bottle</button>
                 <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')">🥣 Solids</button>
             </div>
             <p class="component-hint">Select one or more — e.g. breast + bottle for a mixed feed</p>
-
-            <!-- Breast Options -->
-            <div id="breast-section" class="component-section">
-                <label class="form-label">Side</label>
-                <div class="toggle-group">
-                    <button class="toggle-btn active" data-side="left" onclick="setSide('left')">Left</button>
-                    <button class="toggle-btn" data-side="right" onclick="setSide('right')">Right</button>
-                    <button class="toggle-btn" data-side="both" onclick="setSide('both')">Both</button>
-                </div>
-
-                <!-- Timer Mode: Single breast timer -->
-                <div id="breast-timer-single" class="timer-section-group">
-                    <div class="timer-display">
-                        <div class="timer-time" id="breast-timer-display">00:00:00</div>
-                        <div class="timer-label" id="breast-timer-label">Ready</div>
-                    </div>
-                    <div class="timer-controls">
-                        <button id="breast-timer-btn" class="btn btn-timer-start" onclick="toggleBreastTimer()">Start</button>
-                    </div>
-                </div>
-
-                <!-- Timer Mode: Dual breast timers (shown when 'both' selected) -->
-                <div id="breast-timer-dual" class="timer-section-group" style="display:none;">
-                    <div class="dual-timer-grid">
-                        <div class="dual-timer-col">
-                            <div class="dual-timer-label">Left</div>
-                            <div class="timer-time dual-timer-time" id="left-timer-display">00:00:00</div>
-                            <div class="timer-label" id="left-timer-label">Ready</div>
-                            <button id="left-timer-btn" class="btn btn-timer-start btn-small" onclick="toggleSideTimer('left')">Start</button>
-                        </div>
-                        <div class="dual-timer-col">
-                            <div class="dual-timer-label">Right</div>
-                            <div class="timer-time dual-timer-time" id="right-timer-display">00:00:00</div>
-                            <div class="timer-label" id="right-timer-label">Ready</div>
-                            <button id="right-timer-btn" class="btn btn-timer-start btn-small" onclick="toggleSideTimer('right')">Start</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manual Mode: Breast -->
-                <div id="breast-manual-single" class="manual-section-group" style="display:none;">
-                    <div class="form-group">
-                        <label class="form-label" for="breast-manual-start">Start Time</label>
-                        <input type="datetime-local" id="breast-manual-start" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="breast-manual-end">End Time</label>
-                        <input type="datetime-local" id="breast-manual-end" class="form-input">
-                    </div>
-                    <div id="breast-manual-duration" class="timer-label" style="text-align:center; margin-bottom:12px;"></div>
-                </div>
-
-                <div id="breast-manual-dual" class="manual-section-group" style="display:none;">
-                    <div class="dual-manual-grid">
-                        <div class="dual-manual-col">
-                            <div class="dual-timer-label">Left</div>
-                            <div class="form-group">
-                                <label class="form-label">Start</label>
-                                <input type="datetime-local" id="left-manual-start" class="form-input">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">End</label>
-                                <input type="datetime-local" id="left-manual-end" class="form-input">
-                            </div>
-                            <div id="left-manual-duration" class="timer-label" style="text-align:center;"></div>
-                        </div>
-                        <div class="dual-manual-col">
-                            <div class="dual-timer-label">Right</div>
-                            <div class="form-group">
-                                <label class="form-label">Start</label>
-                                <input type="datetime-local" id="right-manual-start" class="form-input">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">End</label>
-                                <input type="datetime-local" id="right-manual-end" class="form-input">
-                            </div>
-                            <div id="right-manual-duration" class="timer-label" style="text-align:center;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Bottle Options -->
             <div id="bottle-section" class="component-section" style="display:none;">
@@ -223,8 +141,7 @@
         Chart.defaults.font.family = "'DM Sans', sans-serif";
 
         // State
-        let activeComponents = new Set(['breast']);
-        let breastSide = 'left';
+        let activeComponents = new Set(['bottle']);
         let inputMode = 'timer';
         let currentRange = '7d';
         let chartView = 'byType';
@@ -232,9 +149,6 @@
 
         // Timer states
         const timers = {
-            breast: { running: false, start: null, interval: null, elapsed: 0 },
-            left:   { running: false, start: null, interval: null, elapsed: 0 },
-            right:  { running: false, start: null, interval: null, elapsed: 0 },
             solids: { running: false, start: null, interval: null, elapsed: 0 },
         };
 
@@ -273,15 +187,6 @@
         function updateVisibility() {
             const isTimer = inputMode === 'timer';
             const isManual = inputMode === 'manual';
-            const hasBreast = activeComponents.has('breast');
-            const isBoth = breastSide === 'both';
-
-            // Breast section
-            document.getElementById('breast-section').style.display = hasBreast ? 'block' : 'none';
-            document.getElementById('breast-timer-single').style.display = (hasBreast && isTimer && !isBoth) ? 'block' : 'none';
-            document.getElementById('breast-timer-dual').style.display = (hasBreast && isTimer && isBoth) ? 'block' : 'none';
-            document.getElementById('breast-manual-single').style.display = (hasBreast && isManual && !isBoth) ? 'block' : 'none';
-            document.getElementById('breast-manual-dual').style.display = (hasBreast && isManual && isBoth) ? 'block' : 'none';
 
             // Bottle section
             document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
@@ -306,12 +211,6 @@
             document.querySelectorAll('.component-toggle').forEach(b => {
                 b.classList.toggle('active', activeComponents.has(b.dataset.component));
             });
-            updateVisibility();
-        }
-
-        function setSide(side) {
-            breastSide = side;
-            document.querySelectorAll('[data-side]').forEach(b => b.classList.toggle('active', b.dataset.side === side));
             updateVisibility();
         }
 
@@ -341,26 +240,6 @@
             document.getElementById(labelId).textContent = 'Stopped — ' + formatDuration(t.elapsed);
         }
 
-        function toggleBreastTimer() {
-            if (!timers.breast.running) {
-                startTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
-            } else {
-                stopTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
-            }
-        }
-
-        function toggleSideTimer(side) {
-            const key = side; // 'left' or 'right'
-            const displayId = `${side}-timer-display`;
-            const labelId = `${side}-timer-label`;
-            const btnId = `${side}-timer-btn`;
-            if (!timers[key].running) {
-                startTimerState(key, displayId, labelId, btnId);
-            } else {
-                stopTimerState(key, displayId, labelId, btnId);
-            }
-        }
-
         function toggleSolidsTimer() {
             if (!timers.solids.running) {
                 startTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
@@ -383,97 +262,6 @@
             const sessionId = uuid();
             const notes = document.getElementById('notes').value.trim() || null;
             const records = [];
-
-            if (activeComponents.has('breast')) {
-                if (inputMode === 'timer') {
-                    if (breastSide === 'both') {
-                        // Dual timers
-                        if (timers.left.start) {
-                            // Stop running timer
-                            if (timers.left.running) stopTimerState('left', 'left-timer-display', 'left-timer-label', 'left-timer-btn');
-                            records.push({
-                                user_id: userId, session_id: sessionId,
-                                feed_type: 'breast', breast_side: 'left',
-                                start_time: timers.left.start.toISOString(),
-                                end_time: new Date(timers.left.start.getTime() + timers.left.elapsed).toISOString(),
-                                notes,
-                            });
-                        }
-                        if (timers.right.start) {
-                            if (timers.right.running) stopTimerState('right', 'right-timer-display', 'right-timer-label', 'right-timer-btn');
-                            records.push({
-                                user_id: userId, session_id: sessionId,
-                                feed_type: 'breast', breast_side: 'right',
-                                start_time: timers.right.start.toISOString(),
-                                end_time: new Date(timers.right.start.getTime() + timers.right.elapsed).toISOString(),
-                                notes: records.length === 0 ? notes : null,
-                            });
-                        }
-                        if (records.length === 0) {
-                            showToast('Start at least one breast timer first.', 'error');
-                            return;
-                        }
-                    } else {
-                        // Single breast timer
-                        if (!timers.breast.start) {
-                            showToast('Start the breast timer first.', 'error');
-                            return;
-                        }
-                        if (timers.breast.running) stopTimerState('breast', 'breast-timer-display', 'breast-timer-label', 'breast-timer-btn');
-                        records.push({
-                            user_id: userId, session_id: sessionId,
-                            feed_type: 'breast', breast_side: breastSide,
-                            start_time: timers.breast.start.toISOString(),
-                            end_time: new Date(timers.breast.start.getTime() + timers.breast.elapsed).toISOString(),
-                            notes,
-                        });
-                    }
-                } else {
-                    // Manual mode breast
-                    if (breastSide === 'both') {
-                        const ls = document.getElementById('left-manual-start').value;
-                        const le = document.getElementById('left-manual-end').value;
-                        const rs = document.getElementById('right-manual-start').value;
-                        const re = document.getElementById('right-manual-end').value;
-                        if (!ls && !rs) {
-                            showToast('Set at least one start time for breast.', 'error');
-                            return;
-                        }
-                        if (ls) {
-                            records.push({
-                                user_id: userId, session_id: sessionId,
-                                feed_type: 'breast', breast_side: 'left',
-                                start_time: new Date(ls).toISOString(),
-                                end_time: le ? new Date(le).toISOString() : null,
-                                notes,
-                            });
-                        }
-                        if (rs) {
-                            records.push({
-                                user_id: userId, session_id: sessionId,
-                                feed_type: 'breast', breast_side: 'right',
-                                start_time: new Date(rs).toISOString(),
-                                end_time: re ? new Date(re).toISOString() : null,
-                                notes: records.length === 0 ? notes : null,
-                            });
-                        }
-                    } else {
-                        const s = document.getElementById('breast-manual-start').value;
-                        const e = document.getElementById('breast-manual-end').value;
-                        if (!s) {
-                            showToast('Set a start time for breast.', 'error');
-                            return;
-                        }
-                        records.push({
-                            user_id: userId, session_id: sessionId,
-                            feed_type: 'breast', breast_side: breastSide,
-                            start_time: new Date(s).toISOString(),
-                            end_time: e ? new Date(e).toISOString() : null,
-                            notes,
-                        });
-                    }
-                }
-            }
 
             if (activeComponents.has('bottle')) {
                 const vol = document.getElementById('volume').value;
@@ -548,15 +336,15 @@
                 t.start = null;
                 t.elapsed = 0;
             });
-            ['breast-timer-display', 'left-timer-display', 'right-timer-display', 'solids-timer-display'].forEach(id => {
+            ['solids-timer-display'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '00:00:00';
             });
-            ['breast-timer-label', 'left-timer-label', 'right-timer-label', 'solids-timer-label'].forEach(id => {
+            ['solids-timer-label'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = 'Ready';
             });
-            ['breast-timer-btn', 'left-timer-btn', 'right-timer-btn', 'solids-timer-btn'].forEach(id => {
+            ['solids-timer-btn'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
                     el.textContent = 'Start';
@@ -571,11 +359,11 @@
         function prefillManualTimes() {
             const now = new Date();
             const val = toDatetimeLocal(now);
-            ['breast-manual-start', 'left-manual-start', 'right-manual-start', 'solids-manual-start'].forEach(id => {
+            ['solids-manual-start'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = val;
             });
-            ['breast-manual-end', 'left-manual-end', 'right-manual-end', 'solids-manual-end'].forEach(id => {
+            ['solids-manual-end'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -583,9 +371,6 @@
 
         function setupManualDurationCalc() {
             const pairs = [
-                ['breast-manual-start', 'breast-manual-end', 'breast-manual-duration'],
-                ['left-manual-start', 'left-manual-end', 'left-manual-duration'],
-                ['right-manual-start', 'right-manual-end', 'right-manual-duration'],
                 ['solids-manual-start', 'solids-manual-end', 'solids-manual-duration'],
             ];
             pairs.forEach(([sId, eId, dId]) => {
@@ -844,8 +629,6 @@
                 <div class="edit-add-bar">
                     <label class="form-label">Add Component</label>
                     <div class="edit-add-buttons">
-                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast', 'left')">🤱 Left</button>
-                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast', 'right')">🤱 Right</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">🍼 Bottle</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">🥣 Solids</button>
                     </div>
