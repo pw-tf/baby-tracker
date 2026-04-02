@@ -18,12 +18,6 @@
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
         </div>
 
-        <!-- Input Mode Toggle -->
-        <div class="input-mode-toggle">
-            <button class="mode-btn active" data-mode="timer" onclick="setMode('timer')">Timer</button>
-            <button class="mode-btn" data-mode="manual" onclick="setMode('manual')">Manual Entry</button>
-        </div>
-
         <!-- Feed Components Builder -->
         <div class="card">
             <label class="form-label">Feed Components</label>
@@ -31,37 +25,23 @@
                 <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')">🍼 Bottle</button>
                 <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')">🥣 Solids</button>
             </div>
-            <p class="component-hint">Select one or more — e.g. breast + bottle for a mixed feed</p>
+            <p class="component-hint">Select one or more</p>
 
             <!-- Bottle Options -->
             <div id="bottle-section" class="component-section" style="display:none;">
                 <label class="form-label" for="volume">Volume (mL)</label>
                 <input type="number" id="volume" class="form-input" placeholder="e.g. 120" min="0" step="5">
+                <div class="form-group" style="margin-top: 12px;">
+                    <label class="form-label" for="bottle-time">Time <span class="optional-hint">(optional - defaults to now)</span></label>
+                    <input type="datetime-local" id="bottle-time" class="form-input">
+                </div>
             </div>
 
             <!-- Solids Options -->
             <div id="solids-section" class="component-section" style="display:none;">
-                <!-- Timer Mode: Solids timer -->
-                <div id="solids-timer" class="timer-section-group">
-                    <div class="timer-display">
-                        <div class="timer-time" id="solids-timer-display">00:00:00</div>
-                        <div class="timer-label" id="solids-timer-label">Ready</div>
-                    </div>
-                    <div class="timer-controls">
-                        <button id="solids-timer-btn" class="btn btn-timer-start" onclick="toggleSolidsTimer()">Start</button>
-                    </div>
-                </div>
-                <!-- Manual Mode: Solids -->
-                <div id="solids-manual" class="manual-section-group" style="display:none;">
-                    <div class="form-group">
-                        <label class="form-label" for="solids-manual-start">Start Time</label>
-                        <input type="datetime-local" id="solids-manual-start" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="solids-manual-end">End Time</label>
-                        <input type="datetime-local" id="solids-manual-end" class="form-input">
-                    </div>
-                    <div id="solids-manual-duration" class="timer-label" style="text-align:center; margin-bottom:12px;"></div>
+                <div class="form-group">
+                    <label class="form-label" for="solids-time">Time <span class="optional-hint">(optional - defaults to now)</span></label>
+                    <input type="datetime-local" id="solids-time" class="form-input">
                 </div>
             </div>
 
@@ -142,15 +122,9 @@
 
         // State
         let activeComponents = new Set(['bottle']);
-        let inputMode = 'timer';
         let currentRange = '7d';
         let chartView = 'byType';
         let feedingChart = null;
-
-        // Timer states
-        const timers = {
-            solids: { running: false, start: null, interval: null, elapsed: 0 },
-        };
 
         // Delete/Edit state
         let deleteId = null;
@@ -161,9 +135,7 @@
             const session = await requireAuth();
             if (!session) return;
             initNav('feeding.html');
-            prefillManualTimes();
             setupRangeButtons();
-            setupManualDurationCalc();
             updateVisibility();
             await loadEntries();
             await loadChart();
@@ -177,27 +149,10 @@
             });
         }
 
-        // --- Mode switching ---
-        function setMode(mode) {
-            inputMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-            updateVisibility();
-        }
-
+        // --- Visibility ---
         function updateVisibility() {
-            const isTimer = inputMode === 'timer';
-            const isManual = inputMode === 'manual';
-
-            // Bottle section
             document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
-
-            // Solids section
-            const hasSolids = activeComponents.has('solids');
-            document.getElementById('solids-section').style.display = hasSolids ? 'block' : 'none';
-            if (hasSolids) {
-                document.getElementById('solids-timer').style.display = isTimer ? 'block' : 'none';
-                document.getElementById('solids-manual').style.display = isManual ? 'block' : 'none';
-            }
+            document.getElementById('solids-section').style.display = activeComponents.has('solids') ? 'block' : 'none';
         }
 
         // --- Component toggles (multi-select) ---
@@ -214,48 +169,6 @@
             updateVisibility();
         }
 
-        // --- Timer functions ---
-        function startTimerState(key, displayId, labelId, btnId) {
-            const t = timers[key];
-            t.running = true;
-            t.start = new Date();
-            t.elapsed = 0;
-            document.getElementById(btnId).textContent = 'Stop';
-            document.getElementById(btnId).className = document.getElementById(btnId).className.replace('btn-timer-start', 'btn-timer-stop');
-            document.getElementById(labelId).textContent = 'Started at ' + formatTime(t.start.toISOString());
-            t.interval = setInterval(() => {
-                t.elapsed = Date.now() - t.start.getTime();
-                document.getElementById(displayId).textContent = formatElapsed(t.elapsed);
-            }, 1000);
-        }
-
-        function stopTimerState(key, displayId, labelId, btnId) {
-            const t = timers[key];
-            t.running = false;
-            clearInterval(t.interval);
-            t.elapsed = Date.now() - t.start.getTime();
-            document.getElementById(displayId).textContent = formatElapsed(t.elapsed);
-            document.getElementById(btnId).textContent = 'Start';
-            document.getElementById(btnId).className = document.getElementById(btnId).className.replace('btn-timer-stop', 'btn-timer-start');
-            document.getElementById(labelId).textContent = 'Stopped — ' + formatDuration(t.elapsed);
-        }
-
-        function toggleSolidsTimer() {
-            if (!timers.solids.running) {
-                startTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
-            } else {
-                stopTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
-            }
-        }
-
-        function formatElapsed(ms) {
-            const totalSec = Math.floor(ms / 1000);
-            const hrs = Math.floor(totalSec / 3600);
-            const mins = Math.floor((totalSec % 3600) / 60);
-            const secs = totalSec % 60;
-            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-
         // --- Save Feed (handles all components) ---
         async function saveFeed() {
             const userId = await getUserId();
@@ -269,46 +182,29 @@
                     showToast('Enter a bottle volume.', 'error');
                     return;
                 }
-                // For bottle, use the earliest breast start time or now
-                const refTime = records.length > 0 ? records[0].start_time : new Date().toISOString();
+                // Use optional bottle time if set, otherwise current time
+                const bottleTimeInput = document.getElementById('bottle-time').value;
+                const bottleTime = bottleTimeInput ? new Date(bottleTimeInput).toISOString() : new Date().toISOString();
                 records.push({
                     user_id: userId, session_id: sessionId,
                     feed_type: 'bottle', volume_ml: Number(vol),
-                    start_time: refTime,
-                    end_time: refTime,
+                    start_time: bottleTime,
+                    end_time: bottleTime,
                     notes: records.length === 0 ? notes : null,
                 });
             }
 
             if (activeComponents.has('solids')) {
-                if (inputMode === 'timer') {
-                    if (!timers.solids.start) {
-                        showToast('Start the solids timer first.', 'error');
-                        return;
-                    }
-                    if (timers.solids.running) stopTimerState('solids', 'solids-timer-display', 'solids-timer-label', 'solids-timer-btn');
-                    records.push({
-                        user_id: userId, session_id: sessionId,
-                        feed_type: 'solids',
-                        start_time: timers.solids.start.toISOString(),
-                        end_time: new Date(timers.solids.start.getTime() + timers.solids.elapsed).toISOString(),
-                        notes: records.length === 0 ? notes : null,
-                    });
-                } else {
-                    const s = document.getElementById('solids-manual-start').value;
-                    const e = document.getElementById('solids-manual-end').value;
-                    if (!s) {
-                        showToast('Set a start time for solids.', 'error');
-                        return;
-                    }
-                    records.push({
-                        user_id: userId, session_id: sessionId,
-                        feed_type: 'solids',
-                        start_time: new Date(s).toISOString(),
-                        end_time: e ? new Date(e).toISOString() : null,
-                        notes: records.length === 0 ? notes : null,
-                    });
-                }
+                // Use optional solids time if set, otherwise current time
+                const solidsTimeInput = document.getElementById('solids-time').value;
+                const solidsTime = solidsTimeInput ? new Date(solidsTimeInput).toISOString() : new Date().toISOString();
+                records.push({
+                    user_id: userId, session_id: sessionId,
+                    feed_type: 'solids',
+                    start_time: solidsTime,
+                    end_time: solidsTime,
+                    notes: records.length === 0 ? notes : null,
+                });
             }
 
             if (records.length === 0) {
@@ -329,66 +225,10 @@
         }
 
         function resetForm() {
-            Object.keys(timers).forEach(key => {
-                const t = timers[key];
-                clearInterval(t.interval);
-                t.running = false;
-                t.start = null;
-                t.elapsed = 0;
-            });
-            ['solids-timer-display'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = '00:00:00';
-            });
-            ['solids-timer-label'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = 'Ready';
-            });
-            ['solids-timer-btn'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.textContent = 'Start';
-                    el.className = el.className.replace('btn-timer-stop', 'btn-timer-start');
-                }
-            });
             document.getElementById('notes').value = '';
             document.getElementById('volume').value = '';
-            prefillManualTimes();
-        }
-
-        function prefillManualTimes() {
-            const now = new Date();
-            const val = toDatetimeLocal(now);
-            ['solids-manual-start'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = val;
-            });
-            ['solids-manual-end'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-        }
-
-        function setupManualDurationCalc() {
-            const pairs = [
-                ['solids-manual-start', 'solids-manual-end', 'solids-manual-duration'],
-            ];
-            pairs.forEach(([sId, eId, dId]) => {
-                const sEl = document.getElementById(sId);
-                const eEl = document.getElementById(eId);
-                const dEl = document.getElementById(dId);
-                if (!sEl || !eEl || !dEl) return;
-                function calc() {
-                    if (sEl.value && eEl.value) {
-                        const ms = new Date(eEl.value) - new Date(sEl.value);
-                        dEl.textContent = ms > 0 ? `Duration: ${formatDuration(ms)}` : 'End must be after start';
-                    } else {
-                        dEl.textContent = '';
-                    }
-                }
-                sEl.addEventListener('change', calc);
-                eEl.addEventListener('change', calc);
-            });
+            document.getElementById('bottle-time').value = '';
+            document.getElementById('solids-time').value = '';
         }
 
         // --- Load entries (grouped by session) ---

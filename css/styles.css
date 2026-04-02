@@ -344,6 +344,12 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
     letter-spacing: 0.02em;
 }
 
+.form-label .optional-hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
