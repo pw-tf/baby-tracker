@@ -12,7 +12,7 @@
         <!-- Header -->
         <div class="header-bar">
             <a href="dashboard.html" class="logo">
-                <span class="logo-icon">🍼</span>
+                <span class="logo-icon" id="logo-icon"></span>
                 Feeding
             </a>
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
@@ -22,8 +22,8 @@
         <div class="card">
             <label class="form-label">Feed Components</label>
             <div class="component-toggles">
-                <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')">🍼 Bottle</button>
-                <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')">🥣 Solids</button>
+                <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')"><span id="toggle-bottle-icon"></span> Bottle</button>
+                <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')"><span id="toggle-solids-icon"></span> Solids</button>
             </div>
             <p class="component-hint">Select one or more</p>
 
@@ -102,7 +102,7 @@
         <div class="card modal-card modal-card-wide">
             <div class="modal-header">
                 <span class="card-title">Edit Feed</span>
-                <button class="btn-icon" onclick="closeEditModal()" title="Close">✕</button>
+                <button class="btn-icon" onclick="closeEditModal()" title="Close" id="edit-modal-close-btn"></button>
             </div>
             <div id="edit-modal-body"></div>
         </div>
@@ -114,8 +114,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
     <script>
+        // Set icons
+        document.getElementById('logo-icon').innerHTML = icon('milk');
+        document.getElementById('toggle-bottle-icon').innerHTML = icon('milk');
+        document.getElementById('toggle-solids-icon').innerHTML = icon('utensils');
+        document.getElementById('edit-modal-close-btn').innerHTML = icon('x');
+
         Chart.defaults.color = '#9295a5';
         Chart.defaults.borderColor = '#2e3142';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
@@ -246,7 +253,7 @@
             if (error || !data || data.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🍼</div>
+                        <div class="empty-state-icon">${icon('milk', 'icon-2xl')}</div>
                         <div class="empty-state-text">No feedings logged yet</div>
                     </div>`;
                 return;
@@ -273,17 +280,17 @@
                 if (isMulti) {
                     // Multi-component feed
                     const components = entries.map(e => {
-                        const icon = e.feed_type === 'breast' ? '🤱' : e.feed_type === 'bottle' ? '🍼' : '🥣';
+                        const feedIcon = e.feed_type === 'bottle' ? icon('milk') : e.feed_type === 'solids' ? icon('utensils') : icon('milk');
                         let label = '';
                         if (e.feed_type === 'breast') {
                             const side = e.breast_side ? e.breast_side.charAt(0).toUpperCase() + e.breast_side.slice(1) : '';
                             const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
-                            label = `${icon} ${side} · ${dur}`;
+                            label = `${feedIcon} ${side} · ${dur}`;
                         } else if (e.feed_type === 'bottle') {
-                            label = `${icon} ${e.volume_ml ? e.volume_ml + ' mL' : 'Bottle'}`;
+                            label = `${feedIcon} ${e.volume_ml ? e.volume_ml + ' mL' : 'Bottle'}`;
                         } else {
                             const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
-                            label = `${icon} Solids · ${dur}`;
+                            label = `${feedIcon} Solids · ${dur}`;
                         }
                         return `<div class="session-component">${label}</div>`;
                     }).join('');
@@ -296,14 +303,14 @@
                             </div>
                             <div class="entry-time">${formatDateTime(earliest.start_time)}</div>
                             <div class="entry-actions">
-                                <button class="btn-icon edit" onclick="openEditModal('${sessionId || entries[0].id}')" title="Edit">✏️</button>
-                                <button class="btn-icon delete" onclick="confirmDelete('${entries[0].id}', '${sessionId || ''}')" title="Delete">🗑</button>
+                                <button class="btn-icon edit" onclick="openEditModal('${sessionId || entries[0].id}')" title="Edit">${icon('pencil')}</button>
+                                <button class="btn-icon delete" onclick="confirmDelete('${entries[0].id}', '${sessionId || ''}')" title="Delete">${icon('trash-2')}</button>
                             </div>
                         </div>`;
                 } else {
                     // Single-component feed
                     const entry = entries[0];
-                    const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
+                    const feedIcon = entry.feed_type === 'bottle' ? icon('milk') : entry.feed_type === 'solids' ? icon('utensils') : icon('milk');
                     const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
                     let detail = '';
                     if (entry.feed_type === 'breast' && entry.breast_side) {
@@ -317,15 +324,15 @@
 
                     html += `
                         <div class="entry-item">
-                            <div class="entry-icon">${icon}</div>
+                            <div class="entry-icon">${feedIcon}</div>
                             <div class="entry-content">
                                 <div class="entry-title">${typeLabel}${detail ? ' · ' + detail : ''}</div>
                                 <div class="entry-meta">${duration}${entryNotes}</div>
                             </div>
                             <div class="entry-time">${formatDateTime(entry.start_time)}</div>
                             <div class="entry-actions">
-                                <button class="btn-icon edit" onclick="openEditModal('${entry.session_id || entry.id}')" title="Edit">✏️</button>
-                                <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', '${entry.session_id || ''}')" title="Delete">🗑</button>
+                                <button class="btn-icon edit" onclick="openEditModal('${entry.session_id || entry.id}')" title="Edit">${icon('pencil')}</button>
+                                <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', '${entry.session_id || ''}')" title="Delete">${icon('trash-2')}</button>
                             </div>
                         </div>`;
                 }
@@ -402,15 +409,15 @@
 
             // Existing component cards
             editEntries.forEach((entry, idx) => {
-                const icon = entry.feed_type === 'breast' ? '🤱' : entry.feed_type === 'bottle' ? '🍼' : '🥣';
+                const feedIcon = entry.feed_type === 'bottle' ? icon('milk') : entry.feed_type === 'solids' ? icon('utensils') : icon('milk');
                 const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
                 const sideLabel = entry.breast_side ? ` (${entry.breast_side})` : '';
                 const isNew = !entry.id;
 
                 html += `<div class="edit-component-card" id="edit-card-${idx}">
                     <div class="edit-component-header">
-                        <span>${icon} ${typeLabel}${sideLabel}</span>
-                        ${editEntries.length > 1 || isNew ? `<button class="btn-icon delete" onclick="removeEditComponent(${idx})" title="Remove component">🗑</button>` : ''}
+                        <span>${feedIcon} ${typeLabel}${sideLabel}</span>
+                        ${editEntries.length > 1 || isNew ? `<button class="btn-icon delete" onclick="removeEditComponent(${idx})" title="Remove component">${icon('trash-2')}</button>` : ''}
                     </div>`;
 
                 if (entry.feed_type === 'breast') {
@@ -469,8 +476,8 @@
                 <div class="edit-add-bar">
                     <label class="form-label">Add Component</label>
                     <div class="edit-add-buttons">
-                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">🍼 Bottle</button>
-                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">🥣 Solids</button>
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">${icon('milk')} Bottle</button>
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">${icon('utensils')} Solids</button>
                     </div>
                 </div>`;
 

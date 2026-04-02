@@ -115,17 +115,17 @@ function initNav(activePage) {
     if (!nav) return;
 
     const pages = [
-        { href: 'dashboard.html', label: 'Dashboard', icon: '📊' },
-        { href: 'feeding.html', label: 'Feeding', icon: '🍼' },
-        { href: 'nappy.html', label: 'Nappy', icon: '👶' },
-        { href: 'sleep.html', label: 'Sleep', icon: '😴' },
-        { href: 'weight.html', label: 'Weight', icon: '⚖️' },
-        { href: 'intercom.html', label: 'Intercom', icon: '📞' },
+        { href: 'dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
+        { href: 'feeding.html', label: 'Feeding', icon: 'milk' },
+        { href: 'nappy.html', label: 'Nappy', icon: 'baby' },
+        { href: 'sleep.html', label: 'Sleep', icon: 'moon' },
+        { href: 'weight.html', label: 'Weight', icon: 'scale' },
+        { href: 'intercom.html', label: 'Intercom', icon: 'radio' },
     ];
 
     nav.innerHTML = pages.map(p => `
         <a href="${p.href}" class="nav-item ${p.href === activePage ? 'active' : ''}">
-            <span class="nav-icon">${p.icon}</span>
+            <span class="nav-icon">${icon(p.icon)}</span>
             <span class="nav-label">${p.label}</span>
         </a>
     `).join('');

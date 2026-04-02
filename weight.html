@@ -12,7 +12,7 @@
         <!-- Header -->
         <div class="header-bar">
             <a href="dashboard.html" class="logo">
-                <span class="logo-icon">⚖️</span>
+                <span class="logo-icon" id="logo-icon"></span>
                 Weight
             </a>
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
@@ -90,8 +90,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
     <script>
+        // Set icons
+        document.getElementById('logo-icon').innerHTML = icon('scale');
+
         Chart.defaults.color = '#9295a5';
         Chart.defaults.borderColor = '#2e3142';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
@@ -215,7 +219,7 @@
             if (error || !data || data.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">⚖️</div>
+                        <div class="empty-state-icon">${icon('scale', 'icon-2xl')}</div>
                         <div class="empty-state-text">No weight entries yet</div>
                     </div>`;
                 return;
@@ -243,13 +247,13 @@
 
                 return `
                     <div class="entry-item">
-                        <div class="entry-icon">⚖️</div>
+                        <div class="entry-icon">${icon('scale')}</div>
                         <div class="entry-content">
                             <div class="entry-title">${displayWeight} ${changeText}</div>
                             <div class="entry-meta">${formatDate(entry.measured_at)}${notes}</div>
                         </div>
                         <div class="entry-actions">
-                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}')" title="Delete">🗑</button>
+                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}')" title="Delete">${icon('trash-2')}</button>
                         </div>
                     </div>`;
             }).join('');

@@ -5,6 +5,28 @@
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
+/* --- Icons --- */
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+}
+
+.icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Icon size variants */
+.icon-sm { font-size: 0.875rem; }
+.icon-md { font-size: 1.25rem; }
+.icon-lg { font-size: 1.5rem; }
+.icon-xl { font-size: 2rem; }
+.icon-2xl { font-size: 2.5rem; }
+
 /* --- CSS Variables --- */
 :root {
     --bg-primary: #0f1117;
@@ -122,6 +144,7 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
 
 .header-bar .logo-icon {
     font-size: 1.4rem;
+    display: inline-flex;
 }
 
 .btn-logout {
@@ -197,6 +220,7 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
 .nav-icon {
     font-size: 1.5rem;
     line-height: 1;
+    display: inline-flex;
 }
 
 .nav-label {
@@ -264,6 +288,7 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
 .summary-card .summary-icon {
     font-size: 1.5rem;
     margin-bottom: 8px;
+    display: flex;
 }
 
 .summary-card .summary-label {
@@ -579,6 +604,7 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
 .entry-icon {
     font-size: 1.3rem;
     flex-shrink: 0;
+    display: inline-flex;
 }
 
 .entry-content {
@@ -752,6 +778,8 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
 .empty-state-icon {
     font-size: 2.5rem;
     margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
 }
 
 .empty-state-text {

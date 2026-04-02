@@ -483,7 +483,7 @@
         <!-- Header -->
         <div class="ic-header">
             <span class="ic-title">Intercom</span>
-            <button class="ic-settings-btn" onclick="showConfig()" title="Settings">⚙️</button>
+            <button class="ic-settings-btn" onclick="showConfig()" title="Settings" id="settings-btn"></button>
         </div>
 
         <!-- Status -->
@@ -504,14 +504,14 @@
         <!-- PTT Mode -->
         <div class="ic-ptt-area" id="ptt-area">
             <button class="ic-ptt-btn" id="ptt-btn" disabled>
-                <span class="ptt-icon">🎙️</span>
+                <span class="ptt-icon" id="ptt-icon"></span>
                 <span class="ptt-label">Hold to Talk</span>
             </button>
         </div>
 
         <!-- Open Mic Mode -->
         <div class="ic-openmic-area" id="openmic-area" style="display: none;">
-            <div class="ic-openmic-icon">🎙️</div>
+            <div class="ic-openmic-icon" id="openmic-icon"></div>
             <div class="ic-openmic-text" id="openmic-text">Mic is live</div>
         </div>
 
@@ -525,7 +525,7 @@
 
         <!-- Controls -->
         <div class="ic-controls">
-            <button class="ic-mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute">🎤</button>
+            <button class="ic-mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute"></button>
             <div class="ic-volume-group">
                 <span class="ic-volume-label">Volume</span>
                 <input type="range" class="ic-volume-slider" id="volume-slider" min="0" max="100" value="80">
@@ -552,11 +552,18 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
     <script>
         // ============================================================
         //  Home Intercom — WebRTC + Supabase Realtime Broadcast
         // ============================================================
+
+        // Set icons
+        document.getElementById('settings-btn').innerHTML = icon('settings');
+        document.getElementById('ptt-icon').innerHTML = icon('mic', 'icon-xl');
+        document.getElementById('openmic-icon').innerHTML = icon('mic', 'icon-xl');
+        document.getElementById('mute-btn').innerHTML = icon('mic');
 
         initNav('intercom.html');
 
@@ -1035,7 +1042,7 @@
             if (!localStream) return;
             isMuted = !isMuted;
             muteBtn.classList.toggle('muted', isMuted);
-            muteBtn.textContent = isMuted ? '🔇' : '🎤';
+            muteBtn.innerHTML = isMuted ? icon('mic-off') : icon('mic');
 
             if (isMuted) {
                 localStream.getAudioTracks()[0].enabled = false;

@@ -12,7 +12,7 @@
         <!-- Header -->
         <div class="header-bar">
             <a href="dashboard.html" class="logo">
-                <span class="logo-icon">👶</span>
+                <span class="logo-icon" id="logo-icon"></span>
                 Baby Tracker
             </a>
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
@@ -32,26 +32,26 @@
         <!-- Summary Cards -->
         <div class="summary-grid" id="summary-grid">
             <a href="feeding.html" class="summary-card">
-                <div class="summary-icon">🍼</div>
+                <div class="summary-icon" id="icon-feedings"></div>
                 <div class="summary-label">Feedings</div>
                 <div class="summary-value" id="sum-feedings">—</div>
                 <div class="summary-detail" id="sum-feedings-detail"></div>
                 <div class="summary-detail" id="sum-feedings-ml"></div>
             </a>
             <a href="nappy.html" class="summary-card">
-                <div class="summary-icon">👶</div>
+                <div class="summary-icon" id="icon-nappies"></div>
                 <div class="summary-label">Nappies</div>
                 <div class="summary-value" id="sum-nappies">—</div>
                 <div class="summary-detail" id="sum-nappies-detail"></div>
             </a>
             <a href="sleep.html" class="summary-card">
-                <div class="summary-icon">😴</div>
+                <div class="summary-icon" id="icon-sleep"></div>
                 <div class="summary-label">Sleep</div>
                 <div class="summary-value" id="sum-sleep">—</div>
                 <div class="summary-detail" id="sum-sleep-detail"></div>
             </a>
             <a href="weight.html" class="summary-card">
-                <div class="summary-icon">⚖️</div>
+                <div class="summary-icon" id="icon-weight"></div>
                 <div class="summary-label">Weight</div>
                 <div class="summary-value" id="sum-weight">—</div>
                 <div class="summary-detail" id="sum-weight-detail"></div>
@@ -105,8 +105,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
     <script>
+        // Set icons
+        document.getElementById('logo-icon').innerHTML = icon('baby');
+        document.getElementById('icon-feedings').innerHTML = icon('milk');
+        document.getElementById('icon-nappies').innerHTML = icon('baby');
+        document.getElementById('icon-sleep').innerHTML = icon('moon');
+        document.getElementById('icon-weight').innerHTML = icon('scale');
+
         // Chart.js global config for dark mode
         Chart.defaults.color = '#9295a5';
         Chart.defaults.borderColor = '#2e3142';

@@ -110,7 +110,7 @@
         <!-- Header -->
         <div class="header-bar">
             <a href="dashboard.html" class="logo">
-                <span class="logo-icon">👶</span>
+                <span class="logo-icon" id="logo-icon"></span>
                 Nappy
             </a>
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
@@ -120,9 +120,9 @@
         <div class="card">
             <label class="form-label">Type</label>
             <div class="toggle-group">
-                <button class="toggle-btn active" data-type="wet" onclick="setNappyType('wet')">💧 Wet</button>
-                <button class="toggle-btn" data-type="poo" onclick="setNappyType('poo')">💩 Poo</button>
-                <button class="toggle-btn" data-type="both" onclick="setNappyType('both')">💧💩 Both</button>
+                <button class="toggle-btn active" data-type="wet" onclick="setNappyType('wet')"><span id="toggle-wet-icon"></span> Wet</button>
+                <button class="toggle-btn" data-type="poo" onclick="setNappyType('poo')"><span id="toggle-poo-icon"></span> Poo</button>
+                <button class="toggle-btn" data-type="both" onclick="setNappyType('both')"><span id="toggle-both-icon"></span> Both</button>
             </div>
 
             <div class="form-group" style="margin-top: 16px;">
@@ -135,7 +135,7 @@
                 <label class="form-label">Photo (optional)</label>
                 <div class="image-upload-area" id="upload-area">
                     <div id="upload-placeholder">
-                        <div class="upload-icon">📷</div>
+                        <div class="upload-icon" id="upload-icon"></div>
                         <div class="upload-text">Tap to add photo</div>
                     </div>
                     <div id="upload-preview" style="display: none;"></div>
@@ -191,7 +191,7 @@
 
     <!-- Lightbox -->
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <button class="lightbox-close" onclick="closeLightbox()" id="lightbox-close-btn"></button>
         <img id="lightbox-img" src="" alt="Nappy photo">
     </div>
 
@@ -201,8 +201,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
     <script>
+        // Set icons
+        document.getElementById('logo-icon').innerHTML = icon('baby');
+        document.getElementById('toggle-wet-icon').innerHTML = icon('droplet');
+        document.getElementById('toggle-poo-icon').innerHTML = icon('circle');
+        document.getElementById('toggle-both-icon').innerHTML = icon('droplet') + icon('circle');
+        document.getElementById('upload-icon').innerHTML = icon('camera', 'icon-xl');
+        document.getElementById('lightbox-close-btn').innerHTML = icon('x');
+
         Chart.defaults.color = '#9295a5';
         Chart.defaults.borderColor = '#2e3142';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
@@ -300,7 +309,7 @@
             preview.innerHTML = `
                 <div class="image-preview-wrapper">
                     <img src="${url}" class="image-preview" alt="Preview">
-                    <button class="remove-image-btn" onclick="removeImage(event)">✕</button>
+                    <button class="remove-image-btn" onclick="removeImage(event)">${icon('x')}</button>
                 </div>`;
         }
 
@@ -400,7 +409,7 @@
             if (error || !data || data.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">👶</div>
+                        <div class="empty-state-icon">${icon('baby', 'icon-2xl')}</div>
                         <div class="empty-state-text">No nappies logged yet</div>
                     </div>`;
                 return;
@@ -418,7 +427,7 @@
             }));
 
             container.innerHTML = entriesWithUrls.map(entry => {
-                const icon = entry.nappy_type === 'wet' ? '💧' : entry.nappy_type === 'poo' ? '💩' : '💧💩';
+                const nappyIcon = entry.nappy_type === 'wet' ? icon('droplet') : entry.nappy_type === 'poo' ? icon('circle') : icon('droplet') + icon('circle');
                 const typeLabel = entry.nappy_type === 'both' ? 'Wet + Poo' : entry.nappy_type.charAt(0).toUpperCase() + entry.nappy_type.slice(1);
                 const notes = entry.notes ? ` · ${entry.notes}` : '';
                 const thumbnail = entry._image_url
@@ -427,14 +436,14 @@
 
                 return `
                     <div class="entry-item nappy-${entry.nappy_type}">
-                        <div class="entry-icon">${icon}</div>
+                        <div class="entry-icon">${nappyIcon}</div>
                         <div class="entry-content">
                             <div class="entry-title">${typeLabel}</div>
                             <div class="entry-meta">${formatDateTime(entry.changed_at)}${notes}</div>
                         </div>
                         ${thumbnail}
                         <div class="entry-actions">
-                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', ${entry.image_path ? "'" + entry.image_path + "'" : 'null'})" title="Delete">🗑</button>
+                            <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', ${entry.image_path ? "'" + entry.image_path + "'" : 'null'})" title="Delete">${icon('trash-2')}</button>
                         </div>
                     </div>`;
             }).join('');

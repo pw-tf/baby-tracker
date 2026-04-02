@@ -10,7 +10,7 @@
 <body>
     <div class="login-container">
         <div class="login-card">
-            <div class="login-logo">👶</div>
+            <div class="login-logo" id="login-logo"></div>
             <h1 class="login-title">Baby Tracker</h1>
             <p class="login-subtitle">Sign in to continue</p>
 
@@ -32,6 +32,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/icons.js"></script>
+    <script>
+        // Set login logo icon
+        document.getElementById('login-logo').innerHTML = icon('baby', 'icon-2xl');
+    </script>
     <script>
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
