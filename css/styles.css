@@ -244,6 +244,32 @@ a, button, [role="button"], .toggle-btn, .range-btn, .mode-btn, .nav-item, .summ
     color: var(--danger);
 }
 
+.age-badge {
+    background: var(--color-primary-glow);
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: var(--weight-semibold);
+    font-family: var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--duration-fast) var(--ease-out-expo);
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+.age-badge:hover {
+    background: rgba(108, 99, 255, 0.25);
+}
+
+.age-badge.age-badge-unset {
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    background: transparent;
+}
+
 /* --- Bottom Navigation --- */
 .bottom-nav {
     position: fixed;

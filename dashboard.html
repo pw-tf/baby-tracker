@@ -15,6 +15,7 @@
                 <span class="logo-icon" id="logo-icon"></span>
                 Baby Tracker
             </a>
+            <button id="age-badge" class="age-badge" onclick="openBirthdateModal()" title="Set baby's birthdate"></button>
             <button class="btn-logout" onclick="signOut()">Sign Out</button>
         </div>
 
@@ -99,6 +100,24 @@
         </div>
     </div>
 
+    <!-- Birthdate Modal -->
+    <div id="birthdate-modal" class="modal-overlay" style="display:none;">
+        <div class="card modal-card">
+            <div class="modal-header">
+                <span class="card-title">Baby's Birthdate</span>
+                <button class="btn-icon" onclick="closeBirthdateModal()" id="birthdate-modal-close"></button>
+            </div>
+            <div class="form-group" style="margin-top:12px;">
+                <label class="form-label" for="birthdate-input">Date &amp; Time of Birth</label>
+                <input type="datetime-local" id="birthdate-input" class="form-input">
+            </div>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-secondary" onclick="closeBirthdateModal()" style="flex:1;">Cancel</button>
+                <button class="btn btn-primary" onclick="saveBirthdate()" style="flex:1;">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Nav -->
     <nav class="bottom-nav" id="main-nav"></nav>
 
@@ -128,19 +147,91 @@
             const session = await requireAuth();
             if (!session) return;
             initNav('dashboard.html');
+            document.getElementById('birthdate-modal-close').innerHTML = icon('x');
             await loadPreferences();
             await loadDashboard();
             setupRangeButtons();
         })();
 
+        let birthDate = null;
+
         async function loadPreferences() {
             const userId = await getUserId();
             const { data } = await sb
                 .from('user_preferences')
-                .select('weight_unit')
+                .select('weight_unit, birth_date')
                 .eq('user_id', userId)
                 .maybeSingle();
-            if (data) weightUnit = data.weight_unit;
+            if (data) {
+                weightUnit = data.weight_unit;
+                birthDate = data.birth_date ? new Date(data.birth_date) : null;
+            }
+            renderAgeBadge();
+        }
+
+        function renderAgeBadge() {
+            const badge = document.getElementById('age-badge');
+            if (!birthDate) {
+                badge.textContent = 'Set age';
+                badge.classList.add('age-badge-unset');
+                return;
+            }
+            badge.classList.remove('age-badge-unset');
+            const now = new Date();
+            const totalDays = Math.floor((now - birthDate) / (1000 * 60 * 60 * 24));
+            const weeks = Math.floor(totalDays / 7);
+            const days = totalDays % 7;
+            if (weeks === 0) {
+                badge.textContent = `${totalDays}d old`;
+            } else if (days === 0) {
+                badge.textContent = `${weeks}w old`;
+            } else {
+                badge.textContent = `${weeks}w ${days}d old`;
+            }
+        }
+
+        function openBirthdateModal() {
+            const input = document.getElementById('birthdate-input');
+            if (birthDate) {
+                // Format for datetime-local: YYYY-MM-DDTHH:mm
+                const local = new Date(birthDate.getTime() - birthDate.getTimezoneOffset() * 60000)
+                    .toISOString().slice(0, 16);
+                input.value = local;
+            } else {
+                input.value = '';
+            }
+            document.getElementById('birthdate-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
+        }
+
+        function closeBirthdateModal() {
+            document.getElementById('birthdate-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+
+        async function saveBirthdate() {
+            const val = document.getElementById('birthdate-input').value;
+            if (!val) {
+                showToast('Please enter a date and time.', 'error');
+                return;
+            }
+            const userId = await getUserId();
+            const isoVal = new Date(val).toISOString();
+            const { data: existing } = await sb.from('user_preferences').select('id').eq('user_id', userId).maybeSingle();
+            let error;
+            if (existing) {
+                ({ error } = await sb.from('user_preferences').update({ birth_date: isoVal }).eq('user_id', userId));
+            } else {
+                ({ error } = await sb.from('user_preferences').insert({ user_id: userId, birth_date: isoVal }));
+            }
+            if (error) {
+                showToast('Error saving: ' + error.message, 'error');
+                return;
+            }
+            birthDate = new Date(isoVal);
+            renderAgeBadge();
+            closeBirthdateModal();
+            showToast('Birthdate saved!');
         }
 
         function setupRangeButtons() {
