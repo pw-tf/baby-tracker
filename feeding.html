@@ -6,6 +6,118 @@
     <meta name="theme-color" content="#0f1117">
     <title>Baby Tracker — Feeding</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* --- Burp Timer Styles --- */
+        .burp-phase-display {
+            text-align: center;
+            padding: 32px 16px;
+            border-radius: var(--radius-md);
+            transition: background 0.4s var(--ease-out-expo), color 0.4s var(--ease-out-expo);
+        }
+
+        .burp-phase-display.down {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+
+        .burp-phase-display.up {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .burp-phase-icon {
+            margin-bottom: 8px;
+        }
+
+        .burp-phase-icon .icon {
+            width: 56px;
+            height: 56px;
+        }
+
+        .burp-phase-label {
+            font-size: 2.5rem;
+            font-weight: var(--weight-bold);
+            letter-spacing: var(--tracking-tight);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .burp-phase-countdown {
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-bold);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .burp-total-bar {
+            margin-top: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+        }
+
+        .burp-total-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .burp-cycle-label {
+            font-size: 0.85rem;
+            font-weight: var(--weight-semibold);
+            color: var(--text-primary);
+        }
+
+        .burp-total-countdown {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .burp-progress-track {
+            height: 6px;
+            background: var(--bg-input);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .burp-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 1s linear;
+            width: 0%;
+        }
+
+        .burp-done-display {
+            text-align: center;
+            padding: 32px 16px;
+            background: var(--success-bg);
+            border-radius: var(--radius-md);
+        }
+
+        .burp-done-icon {
+            font-size: 3rem;
+            margin-bottom: 8px;
+        }
+
+        .burp-done-text {
+            font-size: 1.2rem;
+            font-weight: var(--weight-semibold);
+            color: var(--success);
+        }
+
+        @keyframes burp-phase-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .burp-phase-display.phase-change {
+            animation: burp-phase-pop 0.4s var(--ease-out-expo);
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -24,6 +136,7 @@
             <div class="component-toggles">
                 <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')"><span id="toggle-bottle-icon"></span> Bottle</button>
                 <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')"><span id="toggle-solids-icon"></span> Solids</button>
+                <button class="toggle-btn component-toggle" data-component="burps" onclick="toggleComponent('burps')"><span id="toggle-burps-icon"></span> Burps</button>
             </div>
             <p class="component-hint">Select one or more</p>
 
@@ -45,8 +158,48 @@
                 </div>
             </div>
 
+            <!-- Burps Section -->
+            <div id="burps-section" class="component-section" style="display:none;">
+                <!-- Setup (before timer starts) -->
+                <div id="burp-setup">
+                    <div class="form-group">
+                        <label class="form-label" for="burp-duration">Timer Duration (minutes)</label>
+                        <input type="number" id="burp-duration" class="form-input" value="15" min="1" max="60" step="1">
+                    </div>
+                    <button class="btn btn-primary" onclick="startBurpTimer()" style="background: var(--info);">Start Burp Timer</button>
+                </div>
+
+                <!-- Active timer display -->
+                <div id="burp-active" style="display:none;">
+                    <div class="burp-phase-display" id="burp-phase-display">
+                        <div class="burp-phase-icon" id="burp-phase-icon"></div>
+                        <div class="burp-phase-label" id="burp-phase-label">DOWN</div>
+                        <div class="burp-phase-countdown" id="burp-phase-countdown">2:00</div>
+                    </div>
+                    <div class="burp-total-bar">
+                        <div class="burp-total-info">
+                            <span class="burp-cycle-label" id="burp-cycle-label">Cycle 1</span>
+                            <span class="burp-total-countdown" id="burp-total-countdown">15:00 remaining</span>
+                        </div>
+                        <div class="burp-progress-track">
+                            <div class="burp-progress-fill" id="burp-progress-fill"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="stopBurpTimer()" style="margin-top: 12px;">Stop</button>
+                </div>
+
+                <!-- Completed state -->
+                <div id="burp-done" style="display:none;">
+                    <div class="burp-done-display">
+                        <div class="burp-done-icon">✅</div>
+                        <div class="burp-done-text">Burping complete!</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="resetBurpTimer()" style="margin-top: 12px;">Reset</button>
+                </div>
+            </div>
+
             <!-- Notes -->
-            <div class="form-group" style="margin-top: 16px;">
+            <div class="form-group" style="margin-top: 16px;" id="feed-notes-group">
                 <label class="form-label" for="notes">Notes</label>
                 <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
             </div>
@@ -121,6 +274,7 @@
         document.getElementById('logo-icon').innerHTML = icon('milk');
         document.getElementById('toggle-bottle-icon').innerHTML = icon('milk');
         document.getElementById('toggle-solids-icon').innerHTML = icon('utensils');
+        document.getElementById('toggle-burps-icon').innerHTML = icon('clock');
         document.getElementById('edit-modal-close-btn').innerHTML = icon('x');
 
         Chart.defaults.color = '#9295a5';
@@ -160,6 +314,11 @@
         function updateVisibility() {
             document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
             document.getElementById('solids-section').style.display = activeComponents.has('solids') ? 'block' : 'none';
+            document.getElementById('burps-section').style.display = activeComponents.has('burps') ? 'block' : 'none';
+
+            const hasFeedComponent = activeComponents.has('bottle') || activeComponents.has('solids');
+            document.getElementById('feed-notes-group').style.display = hasFeedComponent ? 'block' : 'none';
+            document.getElementById('save-feed-btn').style.display = hasFeedComponent ? 'block' : 'none';
         }
 
         // --- Component toggles (multi-select) ---
@@ -610,6 +769,170 @@
             editEntries = null;
             editSessionId = null;
             editRemovedIds = [];
+        }
+
+        // ============================================================
+        //  Burp Timer — "2 and 1" Method
+        //  DOWN for 2 minutes, UP for 1 minute, repeat until done
+        // ============================================================
+        const BURP_DOWN_SECS = 120;
+        const BURP_UP_SECS = 60;
+
+        let burpInterval = null;
+        let burpTotalRemaining = 0;
+        let burpPhaseRemaining = 0;
+        let burpPhase = 'down'; // 'down' or 'up'
+        let burpCycle = 1;
+        let burpTotalDuration = 0;
+        let burpAudioCtx = null;
+
+        function startBurpTimer() {
+            const mins = parseInt(document.getElementById('burp-duration').value, 10);
+            if (!mins || mins < 1 || mins > 60) {
+                showToast('Enter a duration between 1 and 60 minutes.', 'error');
+                return;
+            }
+
+            burpTotalDuration = mins * 60;
+            burpTotalRemaining = burpTotalDuration;
+            burpPhase = 'down';
+            burpPhaseRemaining = BURP_DOWN_SECS;
+            burpCycle = 1;
+
+            document.getElementById('burp-setup').style.display = 'none';
+            document.getElementById('burp-done').style.display = 'none';
+            document.getElementById('burp-active').style.display = 'block';
+
+            updateBurpDisplay();
+            playBurpChime();
+
+            burpInterval = setInterval(tickBurpTimer, 1000);
+        }
+
+        function tickBurpTimer() {
+            burpTotalRemaining--;
+            burpPhaseRemaining--;
+
+            if (burpTotalRemaining <= 0) {
+                clearInterval(burpInterval);
+                burpInterval = null;
+                playBurpChime(true);
+                document.getElementById('burp-active').style.display = 'none';
+                document.getElementById('burp-done').style.display = 'block';
+                return;
+            }
+
+            if (burpPhaseRemaining <= 0) {
+                if (burpPhase === 'down') {
+                    burpPhase = 'up';
+                    burpPhaseRemaining = Math.min(BURP_UP_SECS, burpTotalRemaining);
+                } else {
+                    burpPhase = 'down';
+                    burpPhaseRemaining = Math.min(BURP_DOWN_SECS, burpTotalRemaining);
+                    burpCycle++;
+                }
+                playBurpChime();
+                triggerPhaseAnimation();
+            }
+
+            updateBurpDisplay();
+        }
+
+        function updateBurpDisplay() {
+            const phaseDisplay = document.getElementById('burp-phase-display');
+            const phaseIcon = document.getElementById('burp-phase-icon');
+            const phaseLabel = document.getElementById('burp-phase-label');
+            const phaseCountdown = document.getElementById('burp-phase-countdown');
+            const cycleLabel = document.getElementById('burp-cycle-label');
+            const totalCountdown = document.getElementById('burp-total-countdown');
+            const progressFill = document.getElementById('burp-progress-fill');
+
+            phaseDisplay.className = 'burp-phase-display ' + burpPhase;
+
+            if (burpPhase === 'down') {
+                phaseIcon.innerHTML = icon('arrow-down', 'icon-2xl');
+                phaseLabel.textContent = 'DOWN';
+            } else {
+                phaseIcon.innerHTML = icon('arrow-up', 'icon-2xl');
+                phaseLabel.textContent = 'UP';
+            }
+
+            phaseCountdown.textContent = formatSecsToTimer(burpPhaseRemaining);
+            cycleLabel.textContent = 'Cycle ' + burpCycle;
+            totalCountdown.textContent = formatSecsToTimer(burpTotalRemaining) + ' remaining';
+
+            const pct = ((burpTotalDuration - burpTotalRemaining) / burpTotalDuration) * 100;
+            progressFill.style.width = pct + '%';
+        }
+
+        function triggerPhaseAnimation() {
+            const el = document.getElementById('burp-phase-display');
+            el.classList.remove('phase-change');
+            void el.offsetWidth;
+            el.classList.add('phase-change');
+        }
+
+        function stopBurpTimer() {
+            if (burpInterval) {
+                clearInterval(burpInterval);
+                burpInterval = null;
+            }
+            resetBurpTimer();
+        }
+
+        function resetBurpTimer() {
+            if (burpInterval) {
+                clearInterval(burpInterval);
+                burpInterval = null;
+            }
+            document.getElementById('burp-active').style.display = 'none';
+            document.getElementById('burp-done').style.display = 'none';
+            document.getElementById('burp-setup').style.display = 'block';
+        }
+
+        function formatSecsToTimer(secs) {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return m + ':' + String(s).padStart(2, '0');
+        }
+
+        function playBurpChime(isEnd) {
+            try {
+                if (!burpAudioCtx) {
+                    burpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = burpAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (isEnd) {
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.6);
+                    // Second beep
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.frequency.value = 1100;
+                    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.2);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+                    osc2.start(ctx.currentTime + 0.2);
+                    osc2.stop(ctx.currentTime + 0.8);
+                } else {
+                    osc.frequency.value = burpPhase === 'down' ? 440 : 660;
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.3);
+                }
+            } catch (_) {}
         }
 
         // --- Chart ---
