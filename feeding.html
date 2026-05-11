@@ -6,6 +6,42 @@
     <meta name="theme-color" content="#0f1117">
     <title>Baby Tracker — Feeding</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .burp-phase-display {
+            text-align: center;
+            padding: 32px 16px;
+            border-radius: var(--radius-md);
+            transition: background 0.4s var(--ease-out-expo), color 0.4s var(--ease-out-expo);
+        }
+        .burp-phase-display.down { background: var(--info-bg); color: var(--info); }
+        .burp-phase-display.up  { background: var(--success-bg); color: var(--success); }
+        .burp-phase-icon { margin-bottom: 8px; }
+        .burp-phase-icon .icon { width: 56px; height: 56px; }
+        .burp-phase-label {
+            font-size: 2.5rem; font-weight: var(--weight-bold);
+            letter-spacing: var(--tracking-tight); line-height: 1; margin-bottom: 8px;
+        }
+        .burp-phase-countdown {
+            font-size: var(--text-3xl); font-weight: var(--weight-bold);
+            font-variant-numeric: tabular-nums;
+        }
+        .burp-total-bar {
+            margin-top: 16px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px;
+        }
+        .burp-total-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .burp-cycle-label { font-size: 0.85rem; font-weight: var(--weight-semibold); color: var(--text-primary); }
+        .burp-total-countdown { font-size: 0.85rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .burp-progress-track { height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+        .burp-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 1s linear; width: 0%; }
+        .burp-done-display { text-align: center; padding: 32px 16px; background: var(--success-bg); border-radius: var(--radius-md); }
+        .burp-done-icon { font-size: 3rem; margin-bottom: 8px; }
+        .burp-done-text { font-size: 1.2rem; font-weight: var(--weight-semibold); color: var(--success); }
+        @keyframes burp-phase-pop {
+            0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); }
+        }
+        .burp-phase-display.phase-change { animation: burp-phase-pop 0.4s var(--ease-out-expo); }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -63,22 +99,36 @@
 
             <!-- Burp Panel -->
             <div id="burp-panel" style="display:none;">
-                <div style="text-align:center; padding: 12px 0 20px;">
-                    <div id="burp-timer-display" style="font-size: 3rem; font-weight: 700; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; margin-bottom: 16px;">00:00</div>
-                    <div style="display:flex; gap:10px; justify-content:center;">
-                        <button class="btn btn-primary" id="burp-start-btn" onclick="startBurpTimer()"><span id="burp-start-icon"></span> Start</button>
-                        <button class="btn btn-secondary" id="burp-stop-btn" onclick="stopBurpTimer()" style="display:none;"><span id="burp-stop-icon"></span> Stop</button>
-                    </div>
-                </div>
-                <div id="burp-save-row" style="display:none; margin-top:8px;">
+                <div id="burp-setup">
                     <div class="form-group">
-                        <label class="form-label" for="burp-notes">Notes <span class="optional-hint">(optional)</span></label>
-                        <textarea id="burp-notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
+                        <label class="form-label" for="burp-duration">Timer Duration (minutes)</label>
+                        <input type="number" id="burp-duration" class="form-input" value="15" min="1" max="60" step="1">
                     </div>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn btn-secondary" onclick="discardBurp()" style="flex:1;">Discard</button>
-                        <button class="btn btn-primary" onclick="saveBurp()" style="flex:1;">Save Burp</button>
+                    <button class="btn btn-primary" onclick="startBurpTimer()" style="background: var(--info);">Start Burp Timer</button>
+                </div>
+                <div id="burp-active" style="display:none;">
+                    <div class="burp-phase-display" id="burp-phase-display">
+                        <div class="burp-phase-icon" id="burp-phase-icon"></div>
+                        <div class="burp-phase-label" id="burp-phase-label">DOWN</div>
+                        <div class="burp-phase-countdown" id="burp-phase-countdown">2:00</div>
                     </div>
+                    <div class="burp-total-bar">
+                        <div class="burp-total-info">
+                            <span class="burp-cycle-label" id="burp-cycle-label">Cycle 1</span>
+                            <span class="burp-total-countdown" id="burp-total-countdown">15:00 remaining</span>
+                        </div>
+                        <div class="burp-progress-track">
+                            <div class="burp-progress-fill" id="burp-progress-fill"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="stopBurpTimer()" style="margin-top: 12px;">Stop</button>
+                </div>
+                <div id="burp-done" style="display:none;">
+                    <div class="burp-done-display">
+                        <div class="burp-done-icon">✅</div>
+                        <div class="burp-done-text">Burping complete!</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="resetBurpTimer()" style="margin-top: 12px;">Reset</button>
                 </div>
             </div>
         </div>
@@ -152,8 +202,6 @@
         document.getElementById('edit-modal-close-btn').innerHTML = icon('x');
         document.getElementById('mode-feed-icon').innerHTML = icon('milk');
         document.getElementById('mode-burp-icon').innerHTML = icon('wind');
-        document.getElementById('burp-start-icon').innerHTML = icon('timer');
-        document.getElementById('burp-stop-icon').innerHTML = icon('x');
 
         Chart.defaults.color = '#9295a5';
         Chart.defaults.borderColor = '#2e3142';
@@ -205,96 +253,178 @@
             document.getElementById('burp-panel').style.display = mode === 'burp' ? 'block' : 'none';
         }
 
-        // --- Burp timer (wall-clock based so it survives backgrounding) ---
-        const BURP_KEY = 'burp_start_ts';
+        // ============================================================
+        //  Burp Timer — "2 and 1" Method (wall-clock based)
+        //  DOWN 2 min, UP 1 min, repeat. Survives backgrounding.
+        // ============================================================
+        const BURP_DOWN_SECS = 120;
+        const BURP_UP_SECS = 60;
+        const BURP_SESSION_KEY = 'burp_session';
+
         let burpInterval = null;
+        let burpPrevPhase = null;
+        let burpAudioCtx = null;
 
-        function burpElapsedMs() {
-            const ts = localStorage.getItem(BURP_KEY);
-            return ts ? Date.now() - Number(ts) : 0;
-        }
-
-        function formatBurpTime(ms) {
-            const total = Math.floor(ms / 1000);
-            const m = Math.floor(total / 60).toString().padStart(2, '0');
-            const s = (total % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
-
-        function updateBurpDisplay() {
-            document.getElementById('burp-timer-display').textContent = formatBurpTime(burpElapsedMs());
+        function getBurpState() {
+            const raw = localStorage.getItem(BURP_SESSION_KEY);
+            if (!raw) return null;
+            const { startTs, totalDuration } = JSON.parse(raw);
+            const elapsedSecs = Math.floor((Date.now() - startTs) / 1000);
+            const totalRemaining = Math.max(0, totalDuration - elapsedSecs);
+            const cycleLen = BURP_DOWN_SECS + BURP_UP_SECS;
+            const posInCycle = elapsedSecs % cycleLen;
+            const phase = posInCycle < BURP_DOWN_SECS ? 'down' : 'up';
+            const phaseRemaining = phase === 'down' ? BURP_DOWN_SECS - posInCycle : cycleLen - posInCycle;
+            const cycle = Math.floor(elapsedSecs / cycleLen) + 1;
+            return { totalRemaining, phase, phaseRemaining, cycle, totalDuration, done: totalRemaining <= 0 };
         }
 
         function startBurpTimer() {
-            localStorage.setItem(BURP_KEY, Date.now().toString());
-            document.getElementById('burp-start-btn').style.display = 'none';
-            document.getElementById('burp-stop-btn').style.display = '';
-            document.getElementById('burp-save-row').style.display = 'none';
-            burpInterval = setInterval(updateBurpDisplay, 1000);
+            const mins = parseInt(document.getElementById('burp-duration').value, 10);
+            if (!mins || mins < 1 || mins > 60) {
+                showToast('Enter a duration between 1 and 60 minutes.', 'error');
+                return;
+            }
+            localStorage.setItem(BURP_SESSION_KEY, JSON.stringify({ startTs: Date.now(), totalDuration: mins * 60 }));
+            burpPrevPhase = 'down';
+            document.getElementById('burp-setup').style.display = 'none';
+            document.getElementById('burp-done').style.display = 'none';
+            document.getElementById('burp-active').style.display = 'block';
             updateBurpDisplay();
+            playBurpChime();
+            burpInterval = setInterval(tickBurpTimer, 1000);
+        }
+
+        function tickBurpTimer() {
+            const state = getBurpState();
+            if (!state) return;
+            if (state.done) {
+                clearInterval(burpInterval);
+                burpInterval = null;
+                localStorage.removeItem(BURP_SESSION_KEY);
+                playBurpChime(true);
+                document.getElementById('burp-active').style.display = 'none';
+                document.getElementById('burp-done').style.display = 'block';
+                return;
+            }
+            if (burpPrevPhase !== null && state.phase !== burpPrevPhase) {
+                playBurpChime();
+                triggerPhaseAnimation();
+            }
+            burpPrevPhase = state.phase;
+            updateBurpDisplay();
+        }
+
+        function updateBurpDisplay() {
+            const state = getBurpState();
+            if (!state) return;
+            document.getElementById('burp-phase-display').className = 'burp-phase-display ' + state.phase;
+            if (state.phase === 'down') {
+                document.getElementById('burp-phase-icon').innerHTML = icon('arrow-down', 'icon-2xl');
+                document.getElementById('burp-phase-label').textContent = 'DOWN';
+            } else {
+                document.getElementById('burp-phase-icon').innerHTML = icon('arrow-up', 'icon-2xl');
+                document.getElementById('burp-phase-label').textContent = 'UP';
+            }
+            document.getElementById('burp-phase-countdown').textContent = formatSecsToTimer(state.phaseRemaining);
+            document.getElementById('burp-cycle-label').textContent = 'Cycle ' + state.cycle;
+            document.getElementById('burp-total-countdown').textContent = formatSecsToTimer(state.totalRemaining) + ' remaining';
+            document.getElementById('burp-progress-fill').style.width =
+                ((state.totalDuration - state.totalRemaining) / state.totalDuration * 100) + '%';
+        }
+
+        function triggerPhaseAnimation() {
+            const el = document.getElementById('burp-phase-display');
+            el.classList.remove('phase-change');
+            void el.offsetWidth;
+            el.classList.add('phase-change');
         }
 
         function stopBurpTimer() {
             clearInterval(burpInterval);
             burpInterval = null;
-            updateBurpDisplay();
-            document.getElementById('burp-stop-btn').style.display = 'none';
-            document.getElementById('burp-save-row').style.display = 'block';
+            localStorage.removeItem(BURP_SESSION_KEY);
+            resetBurpTimer();
         }
 
-        function discardBurp() {
-            localStorage.removeItem(BURP_KEY);
+        function resetBurpTimer() {
             clearInterval(burpInterval);
             burpInterval = null;
-            document.getElementById('burp-timer-display').textContent = '00:00';
-            document.getElementById('burp-start-btn').style.display = '';
-            document.getElementById('burp-stop-btn').style.display = 'none';
-            document.getElementById('burp-save-row').style.display = 'none';
-            document.getElementById('burp-notes').value = '';
+            localStorage.removeItem(BURP_SESSION_KEY);
+            document.getElementById('burp-active').style.display = 'none';
+            document.getElementById('burp-done').style.display = 'none';
+            document.getElementById('burp-setup').style.display = 'block';
         }
 
-        async function saveBurp() {
-            const startTs = localStorage.getItem(BURP_KEY);
-            if (!startTs) { showToast('No burp timer found.', 'error'); return; }
-
-            const userId = await getUserId();
-            const startTime = new Date(Number(startTs)).toISOString();
-            const endTime = new Date().toISOString();
-            const notes = document.getElementById('burp-notes').value.trim() || null;
-
-            const { error } = await sb.from('feedings').insert({
-                user_id: userId,
-                session_id: uuid(),
-                feed_type: 'burp',
-                start_time: startTime,
-                end_time: endTime,
-                notes,
-            });
-
-            if (error) { showToast('Error saving: ' + error.message, 'error'); return; }
-
-            localStorage.removeItem(BURP_KEY);
-            showToast('Burp logged!');
-            discardBurp();
-            await loadEntries();
-            await loadChart();
+        function formatSecsToTimer(secs) {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return m + ':' + String(s).padStart(2, '0');
         }
 
-        // Resume display if a burp was running when the page was loaded/re-opened
+        function playBurpChime(isEnd) {
+            try {
+                if (!burpAudioCtx) burpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = burpAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                if (isEnd) {
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.6);
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.frequency.value = 1100;
+                    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.2);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+                    osc2.start(ctx.currentTime + 0.2);
+                    osc2.stop(ctx.currentTime + 0.8);
+                } else {
+                    const state = getBurpState();
+                    osc.frequency.value = (!state || state.phase === 'down') ? 440 : 660;
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.3);
+                }
+            } catch (_) {}
+        }
+
+        // Resume timer if it was running when the page was loaded/re-opened
         (function resumeBurpIfActive() {
-            const ts = localStorage.getItem(BURP_KEY);
-            if (!ts) return;
-            document.getElementById('burp-start-btn').style.display = 'none';
-            document.getElementById('burp-stop-btn').style.display = '';
-            burpInterval = setInterval(updateBurpDisplay, 1000);
-            updateBurpDisplay();
-            // Switch to burp tab so user sees the running timer
+            const state = getBurpState();
+            if (!state) return;
+            if (state.done) { localStorage.removeItem(BURP_SESSION_KEY); return; }
+            burpPrevPhase = state.phase;
             setFeedMode('burp');
+            document.getElementById('burp-setup').style.display = 'none';
+            document.getElementById('burp-done').style.display = 'none';
+            document.getElementById('burp-active').style.display = 'block';
+            updateBurpDisplay();
+            burpInterval = setInterval(tickBurpTimer, 1000);
         })();
 
-        // Recalculate display immediately when tab becomes visible again
+        // Snap display to current time immediately when tab becomes visible
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && localStorage.getItem(BURP_KEY)) {
+            if (document.hidden || !localStorage.getItem(BURP_SESSION_KEY)) return;
+            const state = getBurpState();
+            if (!state) return;
+            if (state.done) {
+                clearInterval(burpInterval);
+                burpInterval = null;
+                localStorage.removeItem(BURP_SESSION_KEY);
+                playBurpChime(true);
+                document.getElementById('burp-active').style.display = 'none';
+                document.getElementById('burp-done').style.display = 'block';
+            } else {
+                burpPrevPhase = state.phase;
                 updateBurpDisplay();
             }
         });
