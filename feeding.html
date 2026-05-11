@@ -132,17 +132,9 @@
 
         <!-- Feed / Burp Tab Switcher + Builder -->
         <div class="card">
-<<<<<<< HEAD
-            <label class="form-label">Feed Components</label>
-            <div class="component-toggles">
-                <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')"><span id="toggle-bottle-icon"></span> Bottle</button>
-                <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')"><span id="toggle-solids-icon"></span> Solids</button>
-                <button class="toggle-btn component-toggle" data-component="burps" onclick="toggleComponent('burps')"><span id="toggle-burps-icon"></span> Burps</button>
-=======
             <div class="input-mode-toggle" style="margin-bottom: 16px;">
                 <button class="mode-btn active" id="mode-btn-feed" onclick="setFeedMode('feed')"><span id="mode-feed-icon"></span> Feed</button>
                 <button class="mode-btn" id="mode-btn-burp" onclick="setFeedMode('burp')"><span id="mode-burp-icon"></span> Burp</button>
->>>>>>> 27617ff (fixed clock)
             </div>
 
             <!-- Feed Panel -->
@@ -201,66 +193,6 @@
                     </div>
                 </div>
             </div>
-<<<<<<< HEAD
-
-            <!-- Solids Options -->
-            <div id="solids-section" class="component-section" style="display:none;">
-                <div class="form-group">
-                    <label class="form-label" for="solids-time">Time <span class="optional-hint">(optional - defaults to now)</span></label>
-                    <input type="datetime-local" id="solids-time" class="form-input">
-                </div>
-            </div>
-
-            <!-- Burps Section -->
-            <div id="burps-section" class="component-section" style="display:none;">
-                <!-- Setup (before timer starts) -->
-                <div id="burp-setup">
-                    <div class="form-group">
-                        <label class="form-label" for="burp-duration">Timer Duration (minutes)</label>
-                        <input type="number" id="burp-duration" class="form-input" value="15" min="1" max="60" step="1">
-                    </div>
-                    <button class="btn btn-primary" onclick="startBurpTimer()" style="background: var(--info);">Start Burp Timer</button>
-                </div>
-
-                <!-- Active timer display -->
-                <div id="burp-active" style="display:none;">
-                    <div class="burp-phase-display" id="burp-phase-display">
-                        <div class="burp-phase-icon" id="burp-phase-icon"></div>
-                        <div class="burp-phase-label" id="burp-phase-label">DOWN</div>
-                        <div class="burp-phase-countdown" id="burp-phase-countdown">2:00</div>
-                    </div>
-                    <div class="burp-total-bar">
-                        <div class="burp-total-info">
-                            <span class="burp-cycle-label" id="burp-cycle-label">Cycle 1</span>
-                            <span class="burp-total-countdown" id="burp-total-countdown">15:00 remaining</span>
-                        </div>
-                        <div class="burp-progress-track">
-                            <div class="burp-progress-fill" id="burp-progress-fill"></div>
-                        </div>
-                    </div>
-                    <button class="btn btn-danger" onclick="stopBurpTimer()" style="margin-top: 12px;">Stop</button>
-                </div>
-
-                <!-- Completed state -->
-                <div id="burp-done" style="display:none;">
-                    <div class="burp-done-display">
-                        <div class="burp-done-icon">✅</div>
-                        <div class="burp-done-text">Burping complete!</div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="resetBurpTimer()" style="margin-top: 12px;">Reset</button>
-                </div>
-            </div>
-
-            <!-- Notes -->
-            <div class="form-group" style="margin-top: 16px;" id="feed-notes-group">
-                <label class="form-label" for="notes">Notes</label>
-                <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
-            </div>
-
-            <!-- Save Button -->
-            <button class="btn btn-primary" id="save-feed-btn" onclick="saveFeed()">Save Feed</button>
-=======
->>>>>>> 27617ff (fixed clock)
         </div>
 
         <!-- Chart -->
@@ -329,7 +261,6 @@
         document.getElementById('logo-icon').innerHTML = icon('milk');
         document.getElementById('toggle-bottle-icon').innerHTML = icon('milk');
         document.getElementById('toggle-solids-icon').innerHTML = icon('utensils');
-        document.getElementById('toggle-burps-icon').innerHTML = icon('clock');
         document.getElementById('edit-modal-close-btn').innerHTML = icon('x');
         document.getElementById('mode-feed-icon').innerHTML = icon('milk');
         document.getElementById('mode-burp-icon').innerHTML = icon('wind');
@@ -373,11 +304,6 @@
         function updateVisibility() {
             document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
             document.getElementById('solids-section').style.display = activeComponents.has('solids') ? 'block' : 'none';
-            document.getElementById('burps-section').style.display = activeComponents.has('burps') ? 'block' : 'none';
-
-            const hasFeedComponent = activeComponents.has('bottle') || activeComponents.has('solids');
-            document.getElementById('feed-notes-group').style.display = hasFeedComponent ? 'block' : 'none';
-            document.getElementById('save-feed-btn').style.display = hasFeedComponent ? 'block' : 'none';
         }
 
         // --- Feed / Burp mode ---
