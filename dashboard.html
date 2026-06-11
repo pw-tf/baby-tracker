@@ -271,11 +271,11 @@
                 ? `Last: ${formatTime(lastFeed.start_time)}`
                 : 'No data';
 
-            // Total mL today (Darwin timezone ACST = UTC+9:30)
-            const todayDarwin = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Darwin' }); // YYYY-MM-DD
+            // Total mL today (device's local timezone, matching the charts)
+            const todayLocal = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
             const todayML = feedings
                 .filter(f => f.feed_type === 'bottle' && f.volume_ml &&
-                    new Date(f.start_time).toLocaleDateString('en-CA', { timeZone: 'Australia/Darwin' }) === todayDarwin)
+                    new Date(f.start_time).toLocaleDateString('en-CA') === todayLocal)
                 .reduce((sum, f) => sum + (f.volume_ml || 0), 0);
             document.getElementById('sum-feedings-ml').textContent = todayML > 0
                 ? `${todayML} mL today`
@@ -327,22 +327,26 @@
 
         // --- Charts ---
 
+        // Labels and grouping must share the same (local) timezone — a hardcoded
+        // Darwin timezone here shifted labels a day back on devices in other
+        // timezones, hiding today's data from the charts.
         function groupByDate(items, dateField) {
             const grouped = {};
             items.forEach(item => {
-                const day = new Date(item[dateField]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' });
+                const day = new Date(item[dateField]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
                 grouped[day] = (grouped[day] || 0) + 1;
             });
             return grouped;
         }
 
         function generateDateLabels() {
-            const { start } = getDateRange(currentRange);
+            const { start, end } = getDateRange(currentRange);
             const labels = [];
             const d = new Date(start);
-            const now = new Date();
-            while (d <= now) {
-                labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Darwin' }));
+            d.setHours(0, 0, 0, 0);
+            const rangeEnd = new Date(end);
+            while (d <= rangeEnd) {
+                labels.push(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }));
                 d.setDate(d.getDate() + 1);
             }
             return labels;
