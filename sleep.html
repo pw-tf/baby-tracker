@@ -124,10 +124,16 @@
         let timerInterval = null;
         let deleteId = null;
 
+        // Wall-clock timer persistence — keeps the nap timer running across page
+        // changes, app close, and phone lock by storing timestamps in localStorage.
+        const NAP_START_KEY = 'nap_timer_start';
+        const NAP_STOP_KEY = 'nap_timer_stop';
+
         (async () => {
             const session = await requireAuth();
             if (!session) return;
             initNav('sleep.html');
+            restoreTimer();
             prefillManualTimes();
             setupRangeButtons();
             setupManualDurationCalc();
@@ -151,26 +157,56 @@
         }
 
         function startTimer() {
-            timerRunning = true;
             timerStart = new Date();
+            localStorage.setItem(NAP_START_KEY, timerStart.getTime().toString());
+            localStorage.removeItem(NAP_STOP_KEY);
+            beginRunningUI();
+        }
+
+        // Render and tick the running state from the persisted start timestamp.
+        function beginRunningUI() {
+            timerRunning = true;
             document.getElementById('timer-start-btn').textContent = 'Stop';
             document.getElementById('timer-start-btn').className = 'btn btn-timer-stop';
             document.getElementById('timer-save-btn').style.display = 'none';
             document.getElementById('timer-label').textContent = 'Fell asleep at ' + formatTime(timerStart.toISOString());
 
-            timerInterval = setInterval(() => {
+            clearInterval(timerInterval);
+            const tick = () => {
                 const elapsed = Date.now() - timerStart.getTime();
                 document.getElementById('timer-display').textContent = formatElapsed(elapsed);
-            }, 1000);
+            };
+            tick();
+            timerInterval = setInterval(tick, 1000);
         }
 
         function stopTimer() {
             timerRunning = false;
             clearInterval(timerInterval);
+            localStorage.setItem(NAP_STOP_KEY, Date.now().toString());
+            showStoppedUI();
+        }
+
+        // Render the stopped (awaiting-save) state, freezing the elapsed display.
+        function showStoppedUI() {
+            const stopMs = Number(localStorage.getItem(NAP_STOP_KEY)) || Date.now();
+            document.getElementById('timer-display').textContent = formatElapsed(stopMs - timerStart.getTime());
             document.getElementById('timer-start-btn').textContent = 'Start';
             document.getElementById('timer-start-btn').className = 'btn btn-timer-start';
             document.getElementById('timer-save-btn').style.display = 'block';
             document.getElementById('timer-label').textContent = 'Woke up — tap Save to log';
+        }
+
+        // On page load, resume whatever timer state was persisted before unload.
+        function restoreTimer() {
+            const startMs = Number(localStorage.getItem(NAP_START_KEY));
+            if (!startMs) return;
+            timerStart = new Date(startMs);
+            if (localStorage.getItem(NAP_STOP_KEY)) {
+                showStoppedUI();
+            } else {
+                beginRunningUI();
+            }
         }
 
         function formatElapsed(ms) {
@@ -186,10 +222,11 @@
             if (!timerStart) return;
             const userId = await getUserId();
 
+            const stopMs = Number(localStorage.getItem(NAP_STOP_KEY));
             const entry = {
                 user_id: userId,
                 start_time: timerStart.toISOString(),
-                end_time: new Date().toISOString(),
+                end_time: new Date(stopMs || Date.now()).toISOString(),
                 notes: document.getElementById('notes').value.trim() || null,
             };
 
@@ -239,6 +276,8 @@
             timerStart = null;
             clearInterval(timerInterval);
             timerRunning = false;
+            localStorage.removeItem(NAP_START_KEY);
+            localStorage.removeItem(NAP_STOP_KEY);
             document.getElementById('timer-display').textContent = '00:00:00';
             document.getElementById('timer-label').textContent = 'Ready';
             document.getElementById('timer-start-btn').textContent = 'Start';
