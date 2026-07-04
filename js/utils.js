@@ -92,6 +92,16 @@ function toDatetimeLocal(date) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Escape user-provided text before inserting into innerHTML
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 // Show toast notification
 function showToast(message, type = 'success') {
     const existing = document.querySelector('.toast');
@@ -109,18 +119,17 @@ function showToast(message, type = 'success') {
     }, 2500);
 }
 
-// Populate nav with active state
+// Populate nav with active state (Intercom is reachable from the settings sheet)
 function initNav(activePage) {
     const nav = document.getElementById('main-nav');
     if (!nav) return;
 
     const pages = [
-        { href: 'dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
+        { href: 'dashboard.html', label: 'Home', icon: 'layout-dashboard' },
         { href: 'feeding.html', label: 'Feeding', icon: 'milk' },
         { href: 'nappy.html', label: 'Nappy', icon: 'baby' },
         { href: 'sleep.html', label: 'Sleep', icon: 'moon' },
         { href: 'weight.html', label: 'Weight', icon: 'scale' },
-        { href: 'intercom.html', label: 'Intercom', icon: 'radio' },
     ];
 
     nav.innerHTML = pages.map(p => `
@@ -129,4 +138,62 @@ function initNav(activePage) {
             <span class="nav-label">${p.label}</span>
         </a>
     `).join('');
+}
+
+// Format an age from a birth date, e.g. "5 weeks, 3 days old"
+function formatAge(birthDate) {
+    const days = Math.floor((Date.now() - new Date(birthDate).getTime()) / 86400000);
+    if (days < 0) return 'arriving soon';
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} old`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 16) {
+        const rem = days % 7;
+        if (rem === 0) return `${weeks} week${weeks === 1 ? '' : 's'} old`;
+        return `${weeks} weeks, ${rem} day${rem === 1 ? '' : 's'} old`;
+    }
+    const months = Math.floor(days / 30.44);
+    return `${months} months old`;
+}
+
+// --- User preferences (user_preferences table), cached per page load ---
+let _userPrefs = null;
+
+async function loadUserPrefs(force = false) {
+    if (_userPrefs && !force) return _userPrefs;
+    const userId = await getUserId();
+    const { data, error } = await sb
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) {
+        console.error('Failed to load preferences:', error.message);
+    }
+    _userPrefs = data || {};
+    return _userPrefs;
+}
+
+async function saveUserPrefs(partial) {
+    const userId = await getUserId();
+    const { data: existing, error: selError } = await sb
+        .from('user_preferences')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (selError) {
+        console.error('Failed to read preferences:', selError.message);
+        return { error: selError };
+    }
+    let error;
+    if (existing) {
+        ({ error } = await sb.from('user_preferences').update(partial).eq('user_id', userId));
+    } else {
+        ({ error } = await sb.from('user_preferences').insert({ user_id: userId, ...partial }));
+    }
+    if (error) {
+        console.error('Failed to save preferences:', error.message);
+    } else {
+        _userPrefs = { ...(_userPrefs || {}), ...partial };
+    }
+    return { error };
 }
