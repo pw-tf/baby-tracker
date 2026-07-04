@@ -127,7 +127,6 @@ function initNav(activePage) {
     const pages = [
         { href: 'dashboard.html', label: 'Home', icon: 'layout-dashboard' },
         { href: 'feeding.html', label: 'Feeding', icon: 'milk' },
-        { href: 'nappy.html', label: 'Nappy', icon: 'baby' },
         { href: 'sleep.html', label: 'Sleep', icon: 'moon' },
         { href: 'weight.html', label: 'Weight', icon: 'scale' },
     ];

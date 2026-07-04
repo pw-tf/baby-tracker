@@ -24,8 +24,6 @@
         <section class="card cat-feed" id="feed-panel">
             <div class="micro-label" style="margin-bottom:12px">Log a feed</div>
             <div class="quick-grid">
-                <button class="quick-btn cat-feed" onclick="openLogSheet('breast', 'left')"><span id="qb-bl"></span>Breast L</button>
-                <button class="quick-btn cat-feed" onclick="openLogSheet('breast', 'right')"><span id="qb-br"></span>Breast R</button>
                 <button class="quick-btn cat-feed filled" onclick="openLogSheet('bottle')"><span id="qb-bottle"></span>Bottle</button>
                 <button class="quick-btn cat-feed" onclick="openLogSheet('solids')"><span id="qb-solids"></span>Solids</button>
             </div>
@@ -192,8 +190,6 @@
     <script src="js/app-shell.js"></script>
     <script src="js/charts.js"></script>
     <script>
-        document.getElementById('qb-bl').innerHTML = icon('milk');
-        document.getElementById('qb-br').innerHTML = icon('milk');
         document.getElementById('qb-bottle').innerHTML = icon('milk');
         document.getElementById('qb-solids').innerHTML = icon('utensils');
         document.getElementById('burp-start-icon').innerHTML = icon('circle-play');
@@ -446,32 +442,16 @@
         });
 
         // ============================================================
-        //  Quick-log sheet (Breast L/R · Bottle · Solids)
+        //  Quick-log sheet (Bottle · Solids)
         // ============================================================
         let logType = null;
-        let logSide = 'left';
 
-        function openLogSheet(type, side) {
+        function openLogSheet(type) {
             logType = type;
-            logSide = side || 'left';
-            const titles = { breast: 'Log a breast feed', bottle: 'Log a bottle', solids: 'Log solids' };
+            const titles = { bottle: 'Log a bottle', solids: 'Log solids' };
             document.getElementById('log-sheet-title').textContent = titles[type];
 
             let html = '';
-            if (type === 'breast') {
-                html += `
-                    <div class="form-group">
-                        <label class="form-label">Side</label>
-                        <div class="toggle-group">
-                            <button class="toggle-btn ${logSide === 'left' ? 'active' : ''}" data-side="left" onclick="setLogSide('left')">Left</button>
-                            <button class="toggle-btn ${logSide === 'right' ? 'active' : ''}" data-side="right" onclick="setLogSide('right')">Right</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="log-duration">Duration (minutes) <span class="optional-hint">(optional)</span></label>
-                        <input type="number" id="log-duration" class="form-input" placeholder="e.g. 12" min="0" step="1" inputmode="numeric">
-                    </div>`;
-            }
             if (type === 'bottle') {
                 html += `
                     <div class="form-group">
@@ -495,12 +475,6 @@
             document.body.classList.add('modal-open');
         }
 
-        function setLogSide(side) {
-            logSide = side;
-            document.querySelectorAll('#log-sheet [data-side]').forEach(b =>
-                b.classList.toggle('active', b.dataset.side === side));
-        }
-
         function closeLogSheet() {
             document.getElementById('log-sheet').classList.remove('open');
             document.body.classList.remove('modal-open');
@@ -522,11 +496,6 @@
                 notes,
             };
 
-            if (logType === 'breast') {
-                record.breast_side = logSide;
-                const mins = Number(document.getElementById('log-duration').value);
-                record.end_time = mins > 0 ? new Date(startTime.getTime() + mins * 60000).toISOString() : null;
-            }
             if (logType === 'bottle') {
                 const vol = Number(document.getElementById('log-volume').value);
                 if (!vol || vol <= 0) {
@@ -806,7 +775,6 @@
                 <div class="edit-add-bar">
                     <label class="form-label">Add component</label>
                     <div class="edit-add-buttons">
-                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast')">${icon('milk')} Breast</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">${icon('milk')} Bottle</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">${icon('utensils')} Solids</button>
                     </div>
@@ -1005,25 +973,20 @@
                         label: d.label,
                         segs: [
                             { value: inDay.filter(e => e.feed_type === 'bottle').length, color: 'var(--c-feed)' },
-                            { value: inDay.filter(e => e.feed_type === 'breast').length, color: 'color-mix(in srgb, var(--c-sleep) 60%, transparent)' },
-                            { value: inDay.filter(e => e.feed_type !== 'bottle' && e.feed_type !== 'breast').length, color: 'color-mix(in srgb, var(--c-nappy) 55%, transparent)' },
+                            { value: inDay.filter(e => e.feed_type === 'solids').length, color: 'color-mix(in srgb, var(--c-sleep) 60%, transparent)' },
                         ],
                     };
                 });
                 renderStackedBarChart(el, perDay);
 
                 const bottle = chartEntries.filter(e => e.feed_type === 'bottle').length;
-                const breast = chartEntries.filter(e => e.feed_type === 'breast').length;
-                const solids = chartEntries.filter(e => e.feed_type !== 'bottle' && e.feed_type !== 'breast').length;
-                const milkTotal = bottle + breast;
+                const solids = chartEntries.filter(e => e.feed_type === 'solids').length;
+                const total = bottle + solids;
                 let legendHtml = '';
-                if (milkTotal > 0) {
+                if (total > 0) {
                     legendHtml += `
-                        <div class="legend-item"><span class="legend-dot" style="background:var(--c-feed)"></span>Bottle ${Math.round(bottle / milkTotal * 100)}%</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:color-mix(in srgb, var(--c-sleep) 60%, transparent)"></span>Breast ${Math.round(breast / milkTotal * 100)}%</div>`;
-                }
-                if (solids > 0) {
-                    legendHtml += `<div class="legend-item"><span class="legend-dot" style="background:color-mix(in srgb, var(--c-nappy) 55%, transparent)"></span>Solids ${solids}</div>`;
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--c-feed)"></span>Bottle ${Math.round(bottle / total * 100)}%</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:color-mix(in srgb, var(--c-sleep) 60%, transparent)"></span>Solids ${Math.round(solids / total * 100)}%</div>`;
                 }
                 legend.innerHTML = legendHtml;
                 legend.style.display = legendHtml ? 'flex' : 'none';

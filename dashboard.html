@@ -22,11 +22,7 @@
             </div>
             <div class="hero-value" id="hero-value">—</div>
             <div class="hero-sub" id="hero-sub">no feeds logged yet</div>
-            <div class="mini-grid">
-                <div>
-                    <div class="mini-value" id="mini-nappy">—</div>
-                    <div class="mini-label">last nappy</div>
-                </div>
+            <div class="mini-grid" style="grid-template-columns:1fr 1fr">
                 <div>
                     <div class="mini-value" id="mini-awake">—</div>
                     <div class="mini-label" id="mini-awake-label">awake</div>
@@ -47,17 +43,12 @@
                     <span class="stat-value" id="stat-feed-value">—</span>
                     <span class="stat-meta" id="stat-feed-meta">Feeds</span>
                 </a>
-                <a href="nappy.html" class="stat-card cat-nappy">
-                    <span class="chip chip-xs cat-nappy" id="stat-nappy-chip"></span>
-                    <span class="stat-value" id="stat-nappy-value">—</span>
-                    <span class="stat-meta" id="stat-nappy-meta">Nappies</span>
-                </a>
                 <a href="sleep.html" class="stat-card cat-sleep">
                     <span class="chip chip-xs cat-sleep" id="stat-sleep-chip"></span>
                     <span class="stat-value" id="stat-sleep-value">—</span>
                     <span class="stat-meta" id="stat-sleep-meta">Sleep</span>
                 </a>
-                <a href="weight.html" class="stat-card cat-weight">
+                <a href="weight.html" class="stat-card cat-weight" style="grid-column:1 / -1">
                     <span class="chip chip-xs cat-weight" id="stat-weight-chip"></span>
                     <span class="stat-value" id="stat-weight-value">—</span>
                     <span class="stat-meta" id="stat-weight-meta">Weight</span>
@@ -96,12 +87,11 @@
     <script>
         document.getElementById('hero-chip').innerHTML = icon('milk');
         document.getElementById('stat-feed-chip').innerHTML = icon('milk');
-        document.getElementById('stat-nappy-chip').innerHTML = icon('droplet');
         document.getElementById('stat-sleep-chip').innerHTML = icon('moon');
         document.getElementById('stat-weight-chip').innerHTML = icon('scale');
 
         let weightUnit = 'kg';
-        let raw = { feedings: [], nappies: [], sleeps: [], weights: [] };
+        let raw = { feedings: [], sleeps: [], weights: [] };
 
         (async () => {
             const session = await requireAuth();
@@ -128,24 +118,21 @@
             const rangeStart = new Date(startOfLocalDay().getTime() - 6 * 86400000).toISOString();
             const sleepStart = new Date(startOfLocalDay().getTime() - 8 * 86400000).toISOString();
 
-            const [feedings, nappies, sleeps, weights] = await Promise.all([
+            const [feedings, sleeps, weights] = await Promise.all([
                 sb.from('feedings').select('id, session_id, start_time, end_time, feed_type, volume_ml, breast_side')
                     .eq('user_id', userId).gte('start_time', rangeStart).order('start_time', { ascending: true }),
-                sb.from('nappies').select('changed_at, nappy_type')
-                    .eq('user_id', userId).gte('changed_at', rangeStart).order('changed_at', { ascending: true }),
                 sb.from('sleeps').select('start_time, end_time')
                     .eq('user_id', userId).gte('start_time', sleepStart).order('start_time', { ascending: true }),
                 sb.from('weights').select('weight_kg, measured_at')
                     .eq('user_id', userId).order('measured_at', { ascending: false }).limit(10),
             ]);
 
-            for (const [name, res] of Object.entries({ feedings, nappies, sleeps, weights })) {
+            for (const [name, res] of Object.entries({ feedings, sleeps, weights })) {
                 if (res.error) console.error(`Failed to load ${name}:`, res.error.message);
             }
 
             raw = {
                 feedings: feedings.data || [],
-                nappies: nappies.data || [],
                 sleeps: sleeps.data || [],
                 weights: weights.data || [],
             };
@@ -193,11 +180,6 @@
                 document.getElementById('hero-value').textContent = '—';
                 document.getElementById('hero-sub').textContent = 'no feeds in the last 7 days';
             }
-
-            // last nappy
-            const lastNappy = raw.nappies[raw.nappies.length - 1];
-            document.getElementById('mini-nappy').textContent = lastNappy
-                ? formatDuration(Math.max(0, now - new Date(lastNappy.changed_at))) : '—';
 
             // awake / asleep
             const open = raw.sleeps.find(s => !s.end_time);
@@ -249,14 +231,6 @@
             document.getElementById('stat-feed-value').textContent = sessions.length;
             document.getElementById('stat-feed-meta').textContent =
                 bottleML > 0 ? `Feeds · ${bottleML} ml bottle` : 'Feeds';
-
-            // Nappies
-            const todayNappies = raw.nappies.filter(n => new Date(n.changed_at) >= todayStart);
-            const wet = todayNappies.filter(n => n.nappy_type === 'wet' || n.nappy_type === 'both').length;
-            const dirty = todayNappies.filter(n => n.nappy_type === 'poo' || n.nappy_type === 'both').length;
-            document.getElementById('stat-nappy-value').textContent = todayNappies.length;
-            document.getElementById('stat-nappy-meta').textContent =
-                todayNappies.length ? `Nappies · ${wet} wet · ${dirty} dirty` : 'Nappies';
 
             // Sleep
             const sleepMs = sumOverlap(raw.sleeps, todayStart, now);
