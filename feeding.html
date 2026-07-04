@@ -1,213 +1,181 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f1117">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1B1713">
     <title>Baby Tracker — Feeding</title>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/styles.css">
-    <style>
-        .burp-phase-display {
-            text-align: center;
-            padding: 32px 16px;
-            border-radius: var(--radius-md);
-            transition: background 0.4s var(--ease-out-expo), color 0.4s var(--ease-out-expo);
-        }
-        .burp-phase-display.down { background: var(--info-bg); color: var(--info); }
-        .burp-phase-display.up  { background: var(--success-bg); color: var(--success); }
-        .burp-phase-icon { margin-bottom: 8px; }
-        .burp-phase-icon .icon { width: 56px; height: 56px; }
-        .burp-phase-label {
-            font-size: 2.5rem; font-weight: var(--weight-bold);
-            letter-spacing: var(--tracking-tight); line-height: 1; margin-bottom: 8px;
-        }
-        .burp-phase-countdown {
-            font-size: var(--text-3xl); font-weight: var(--weight-bold);
-            font-variant-numeric: tabular-nums;
-        }
-        .burp-total-bar {
-            margin-top: 16px; background: var(--bg-card);
-            border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px;
-        }
-        .burp-total-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .burp-cycle-label { font-size: 0.85rem; font-weight: var(--weight-semibold); color: var(--text-primary); }
-        .burp-total-countdown { font-size: 0.85rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-        .burp-progress-track { height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
-        .burp-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 1s linear; width: 0%; }
-        .burp-done-display { text-align: center; padding: 32px 16px; background: var(--success-bg); border-radius: var(--radius-md); }
-        .burp-done-icon { font-size: 3rem; margin-bottom: 8px; }
-        .burp-done-text { font-size: 1.2rem; font-weight: var(--weight-semibold); color: var(--success); }
-        @keyframes burp-phase-pop {
-            0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); }
-        }
-        .burp-phase-display.phase-change { animation: burp-phase-pop 0.4s var(--ease-out-expo); }
-        .pagination-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 8px; padding: 12px 4px 4px;
-        }
-        .pagination-info {
-            font-size: 0.85rem; color: var(--text-secondary);
-            font-variant-numeric: tabular-nums;
-        }
-        .pagination-bar .btn:disabled { opacity: 0.4; pointer-events: none; }
-        .analytics-grid { margin-bottom: 16px; }
-        .analytics-grid .summary-card { cursor: default; }
-    </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <div class="header-bar">
-            <a href="dashboard.html" class="logo">
-                <span class="logo-icon" id="logo-icon"></span>
-                Feeding
-            </a>
-            <button class="btn-logout" onclick="signOut()">Sign Out</button>
+        <header class="appbar" id="appbar"></header>
+
+        <h1 class="screen-title">Feeding</h1>
+
+        <!-- Feed / Burp segmented toggle -->
+        <div class="seg">
+            <button class="seg-btn active" id="mode-btn-feed" onclick="setFeedMode('feed')">Feed</button>
+            <button class="seg-btn" id="mode-btn-burp" onclick="setFeedMode('burp')">Burp timer</button>
         </div>
 
-        <!-- Feed / Burp Tab Switcher + Builder -->
-        <div class="card">
-            <div class="input-mode-toggle" style="margin-bottom: 16px;">
-                <button class="mode-btn active" id="mode-btn-feed" onclick="setFeedMode('feed')"><span id="mode-feed-icon"></span> Feed</button>
-                <button class="mode-btn" id="mode-btn-burp" onclick="setFeedMode('burp')"><span id="mode-burp-icon"></span> Burp</button>
+        <!-- Log a feed -->
+        <section class="card cat-feed" id="feed-panel">
+            <div class="micro-label" style="margin-bottom:12px">Log a feed</div>
+            <div class="quick-grid">
+                <button class="quick-btn cat-feed" onclick="openLogSheet('breast', 'left')"><span id="qb-bl"></span>Breast L</button>
+                <button class="quick-btn cat-feed" onclick="openLogSheet('breast', 'right')"><span id="qb-br"></span>Breast R</button>
+                <button class="quick-btn cat-feed filled" onclick="openLogSheet('bottle')"><span id="qb-bottle"></span>Bottle</button>
+                <button class="quick-btn cat-feed" onclick="openLogSheet('solids')"><span id="qb-solids"></span>Solids</button>
+            </div>
+        </section>
+
+        <!-- Burp timer -->
+        <section class="card cat-feed" id="burp-panel" style="display:none">
+            <!-- idle -->
+            <div id="burp-setup">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:4px">
+                    <div style="display:flex;align-items:center;gap:9px;min-width:0">
+                        <span class="micro-label" style="white-space:nowrap">Burp timer</span>
+                        <span class="badge cat-feed">2-and-1 method</span>
+                    </div>
+                    <button class="btn-icon" id="burp-sound-btn" onclick="toggleBurpSound()" style="margin:-8px -8px -8px 0" aria-label="Timer sound"></button>
+                </div>
+                <div style="font-size:12.5px;color:var(--soft);font-weight:500;margin-bottom:16px;line-height:1.4">
+                    2 min holding baby down, 1 min upright — repeating until the timer ends.
+                </div>
+                <div class="stepper" style="margin-bottom:14px">
+                    <span class="stepper-label">Total length</span>
+                    <div class="stepper-controls">
+                        <button class="stepper-btn" onclick="burpAdjust(-5)" aria-label="Shorter">−</button>
+                        <span class="stepper-value" id="burp-duration-label">15 min</span>
+                        <button class="stepper-btn" onclick="burpAdjust(5)" aria-label="Longer">+</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="startBurpTimer()"><span id="burp-start-icon"></span>Start burping</button>
             </div>
 
-            <!-- Feed Panel -->
-            <div id="feed-panel">
-                <label class="form-label">Feed Components</label>
-                <div class="component-toggles">
-                    <button class="toggle-btn component-toggle active" data-component="bottle" onclick="toggleComponent('bottle')"><span id="toggle-bottle-icon"></span> Bottle</button>
-                    <button class="toggle-btn component-toggle" data-component="solids" onclick="toggleComponent('solids')"><span id="toggle-solids-icon"></span> Solids</button>
+            <!-- active -->
+            <div id="burp-active" style="display:none">
+                <div class="burp-panel down" id="burp-phase-display">
+                    <div class="burp-panel-icon" id="burp-phase-icon"></div>
+                    <div class="burp-phase-label" id="burp-phase-label">DOWN</div>
+                    <div class="burp-phase-hint" id="burp-phase-hint">Hold baby lying down</div>
+                    <div class="burp-phase-countdown" id="burp-phase-countdown">2:00</div>
                 </div>
-                <p class="component-hint">Select one or more</p>
-
-                <!-- Bottle Options -->
-                <div id="bottle-section" class="component-section" style="display:none;">
-                    <label class="form-label" for="volume">Volume (mL)</label>
-                    <input type="number" id="volume" class="form-input" placeholder="e.g. 120" min="0" step="5">
-                    <div class="form-group" style="margin-top: 12px;">
-                        <label class="form-label" for="bottle-time">Time <span class="optional-hint">(optional - defaults to now)</span></label>
-                        <input type="datetime-local" id="bottle-time" class="form-input">
+                <div class="progress-card">
+                    <div class="progress-info">
+                        <span class="progress-cycle" id="burp-cycle-label">Cycle 1</span>
+                        <span class="progress-remaining" id="burp-total-countdown">15:00 left</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="burp-progress-fill"></div>
                     </div>
                 </div>
-
-                <!-- Solids Options -->
-                <div id="solids-section" class="component-section" style="display:none;">
-                    <div class="form-group">
-                        <label class="form-label" for="solids-time">Time <span class="optional-hint">(optional - defaults to now)</span></label>
-                        <input type="datetime-local" id="solids-time" class="form-input">
-                    </div>
-                </div>
-
-                <!-- Notes -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label class="form-label" for="notes">Notes</label>
-                    <textarea id="notes" class="form-textarea" placeholder="Optional notes..." rows="2"></textarea>
-                </div>
-
-                <button class="btn btn-primary" id="save-feed-btn" onclick="saveFeed()">Save Feed</button>
+                <button class="btn btn-danger" onclick="stopBurpTimer()">Stop</button>
             </div>
 
-            <!-- Burp Panel -->
-            <div id="burp-panel" style="display:none;">
-                <div id="burp-setup">
-                    <div class="form-group">
-                        <label class="form-label" for="burp-duration">Timer Duration (minutes)</label>
-                        <input type="number" id="burp-duration" class="form-input" value="15" min="1" max="60" step="1">
-                    </div>
-                    <button class="btn btn-primary" onclick="startBurpTimer()" style="background: var(--info);">Start Burp Timer</button>
-                </div>
-                <div id="burp-active" style="display:none;">
-                    <div class="burp-phase-display" id="burp-phase-display">
-                        <div class="burp-phase-icon" id="burp-phase-icon"></div>
-                        <div class="burp-phase-label" id="burp-phase-label">DOWN</div>
-                        <div class="burp-phase-countdown" id="burp-phase-countdown">2:00</div>
-                    </div>
-                    <div class="burp-total-bar">
-                        <div class="burp-total-info">
-                            <span class="burp-cycle-label" id="burp-cycle-label">Cycle 1</span>
-                            <span class="burp-total-countdown" id="burp-total-countdown">15:00 remaining</span>
-                        </div>
-                        <div class="burp-progress-track">
-                            <div class="burp-progress-fill" id="burp-progress-fill"></div>
-                        </div>
-                    </div>
-                    <button class="btn btn-danger" onclick="stopBurpTimer()" style="margin-top: 12px;">Stop</button>
-                </div>
-                <div id="burp-done" style="display:none;">
-                    <div class="burp-done-display">
-                        <div class="burp-done-icon">✅</div>
-                        <div class="burp-done-text">Burping complete!</div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="resetBurpTimer()" style="margin-top: 12px;">Reset</button>
+            <!-- done -->
+            <div id="burp-done" style="display:none">
+                <div class="done-panel">
+                    <div class="done-check" id="burp-done-check"></div>
+                    <div class="done-title">Burping complete</div>
+                    <div class="done-sub">Nicely done. Log the feed when you're ready.</div>
+                    <button class="btn btn-secondary" onclick="resetBurpTimer()">Reset timer</button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Chart -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Feeding Frequency</span>
-                <div class="input-mode-toggle" style="margin:0;">
-                    <button class="mode-btn active" id="chart-view-bytype" onclick="setChartView('byType')">By Type</button>
-                    <button class="mode-btn" id="chart-view-total" onclick="setChartView('total')">Total</button>
+        <!-- Today summary -->
+        <section class="card">
+            <div class="triple">
+                <div>
+                    <div class="triple-value" id="sum-count">—</div>
+                    <div class="triple-label">feeds today</div>
+                </div>
+                <div>
+                    <div class="triple-value" id="sum-ml">—</div>
+                    <div class="triple-label">bottle total</div>
+                </div>
+                <div>
+                    <div class="triple-value" id="sum-since">—</div>
+                    <div class="triple-label">since last</div>
                 </div>
             </div>
-            <div class="date-range-bar" id="date-range-bar">
+        </section>
+
+        <!-- Feeds per day -->
+        <section class="card cat-feed">
+            <div class="card-head" style="margin-bottom:14px">
+                <span class="micro-label">Feeds per day</span>
+                <div class="seg-mini">
+                    <button class="seg-btn active" id="chart-view-bytype" onclick="setChartView('byType')">Type</button>
+                    <button class="seg-btn" id="chart-view-total" onclick="setChartView('total')">Total</button>
+                </div>
+            </div>
+            <div class="range-bar" id="date-range-bar">
                 <button class="range-btn" data-range="24h">24h</button>
                 <button class="range-btn active" data-range="7d">7 days</button>
                 <button class="range-btn" data-range="14d">14 days</button>
                 <button class="range-btn" data-range="30d">30 days</button>
             </div>
-            <div class="chart-container">
-                <canvas id="feeding-chart"></canvas>
-            </div>
-        </div>
+            <div class="bars" style="height:88px" id="feed-chart"></div>
+            <div class="legend" id="feed-legend" style="display:none"></div>
+        </section>
 
-        <!-- Feeding Insights -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Feeding Insights</span>
+        <!-- Feeding insights -->
+        <section class="card cat-feed">
+            <div class="micro-label" style="margin-bottom:13px">Feeding insights</div>
+            <div class="inset-grid" id="insights-grid"></div>
+            <div class="micro-label" style="margin:18px 0 12px">Feeds by time of day</div>
+            <div class="hbars" id="hourly-chart"></div>
+            <div class="hbars-axis">
+                <span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span>
             </div>
-            <div class="summary-grid analytics-grid" id="analytics-grid"></div>
-            <label class="form-label">Feeds by Time of Day</label>
-            <div class="chart-container">
-                <canvas id="hourly-chart"></canvas>
-            </div>
-        </div>
+        </section>
 
-        <!-- Recent Entries -->
-        <div class="entry-list">
-            <div class="entry-list-header">
-                <span class="entry-list-title">Recent Feedings</span>
-            </div>
+        <!-- Recent feeds -->
+        <section class="card cat-feed">
+            <div class="micro-label" style="margin-bottom:6px">Recent feeds</div>
             <div id="entry-list-container">
                 <div class="loading"><div class="spinner"></div></div>
             </div>
-            <div class="pagination-bar" id="pagination-bar" style="display:none;">
+            <div class="pagination-bar" id="pagination-bar" style="display:none">
                 <button class="btn btn-secondary btn-small" id="page-prev" onclick="changePage(-1)">&larr; Prev</button>
                 <span class="pagination-info" id="page-info"></span>
                 <button class="btn btn-secondary btn-small" id="page-next" onclick="changePage(1)">Next &rarr;</button>
             </div>
+        </section>
+    </div>
+
+    <!-- Log-a-feed sheet -->
+    <div id="log-sheet" class="modal-overlay">
+        <div class="card sheet">
+            <div class="modal-header">
+                <span class="sheet-title" id="log-sheet-title">Log a feed</span>
+                <button class="btn-icon" onclick="closeLogSheet()" aria-label="Close" id="log-sheet-close"></button>
+            </div>
+            <div id="log-sheet-body"></div>
         </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal-overlay" style="display:none;">
+    <div id="delete-modal" class="modal-overlay">
         <div class="card modal-card">
-            <p style="margin-bottom:16px;">Delete this feeding entry?</p>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
-                <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1;">Delete</button>
+            <p style="margin-bottom:16px;font-weight:600">Delete this feed?</p>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary btn-small" onclick="closeDeleteModal()" style="flex:1">Cancel</button>
+                <button class="btn btn-danger btn-small" id="confirm-delete-btn" style="flex:1">Delete</button>
             </div>
         </div>
     </div>
 
     <!-- Edit Modal -->
-    <div id="edit-modal" class="modal-overlay" style="display:none;">
-        <div class="card modal-card modal-card-wide">
+    <div id="edit-modal" class="modal-overlay">
+        <div class="card sheet">
             <div class="modal-header">
-                <span class="card-title">Edit Feed</span>
+                <span class="sheet-title">Edit feed</span>
                 <button class="btn-icon" onclick="closeEditModal()" title="Close" id="edit-modal-close-btn"></button>
             </div>
             <div id="edit-modal-body"></div>
@@ -218,30 +186,24 @@
     <nav class="bottom-nav" id="main-nav"></nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/icons.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/app-shell.js"></script>
+    <script src="js/charts.js"></script>
     <script>
-        // Set icons
-        document.getElementById('logo-icon').innerHTML = icon('milk');
-        document.getElementById('toggle-bottle-icon').innerHTML = icon('milk');
-        document.getElementById('toggle-solids-icon').innerHTML = icon('utensils');
+        document.getElementById('qb-bl').innerHTML = icon('milk');
+        document.getElementById('qb-br').innerHTML = icon('milk');
+        document.getElementById('qb-bottle').innerHTML = icon('milk');
+        document.getElementById('qb-solids').innerHTML = icon('utensils');
+        document.getElementById('burp-start-icon').innerHTML = icon('circle-play');
+        document.getElementById('burp-done-check').innerHTML = icon('check');
         document.getElementById('edit-modal-close-btn').innerHTML = icon('x');
-        document.getElementById('mode-feed-icon').innerHTML = icon('milk');
-        document.getElementById('mode-burp-icon').innerHTML = icon('wind');
-
-        Chart.defaults.color = '#9295a5';
-        Chart.defaults.borderColor = '#2e3142';
-        Chart.defaults.font.family = "'DM Sans', sans-serif";
+        document.getElementById('log-sheet-close').innerHTML = icon('x');
 
         // State
-        let activeComponents = new Set(['bottle']);
         let currentRange = '7d';
         let chartView = 'byType';
-        let feedingChart = null;
-
-        // Delete/Edit state
         let deleteId = null;
         let deleteSessionId = null;
         let editEntries = null;
@@ -249,11 +211,13 @@
         (async () => {
             const session = await requireAuth();
             if (!session) return;
-            initNav('feeding.html');
+            await initAppShell('feeding.html');
             setupRangeButtons();
-            updateVisibility();
+            renderBurpSoundBtn();
+            renderBurpDuration();
             await loadEntries();
             await loadChart();
+            setInterval(renderTodaySummary, 30000);
         })();
 
         // --- Generate UUID v4 ---
@@ -262,12 +226,6 @@
                 const r = Math.random() * 16 | 0;
                 return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
             });
-        }
-
-        // --- Visibility ---
-        function updateVisibility() {
-            document.getElementById('bottle-section').style.display = activeComponents.has('bottle') ? 'block' : 'none';
-            document.getElementById('solids-section').style.display = activeComponents.has('solids') ? 'block' : 'none';
         }
 
         // --- Feed / Burp mode ---
@@ -288,10 +246,42 @@
         const BURP_DOWN_SECS = 120;
         const BURP_UP_SECS = 60;
         const BURP_SESSION_KEY = 'burp_session';
+        const BURP_LENGTH_KEY = 'bt_burp_length';
+        const BURP_SOUND_KEY = 'bt_burp_sound';
 
         let burpInterval = null;
         let burpPrevPhase = null;
         let burpAudioCtx = null;
+        let burpTotalMin = clampBurpMins(Number(localStorage.getItem(BURP_LENGTH_KEY)) || 15);
+
+        function clampBurpMins(mins) {
+            return Math.min(30, Math.max(5, Math.round(mins / 5) * 5));
+        }
+
+        function burpAdjust(delta) {
+            burpTotalMin = clampBurpMins(burpTotalMin + delta);
+            localStorage.setItem(BURP_LENGTH_KEY, String(burpTotalMin));
+            renderBurpDuration();
+        }
+
+        function renderBurpDuration() {
+            document.getElementById('burp-duration-label').textContent = burpTotalMin + ' min';
+        }
+
+        function burpSoundOn() {
+            return localStorage.getItem(BURP_SOUND_KEY) !== 'off';
+        }
+
+        function toggleBurpSound() {
+            localStorage.setItem(BURP_SOUND_KEY, burpSoundOn() ? 'off' : 'on');
+            renderBurpSoundBtn();
+        }
+
+        function renderBurpSoundBtn() {
+            const btn = document.getElementById('burp-sound-btn');
+            btn.innerHTML = icon(burpSoundOn() ? 'volume-2' : 'volume-x');
+            btn.title = burpSoundOn() ? 'Chime on — tap to mute' : 'Chime off — tap to unmute';
+        }
 
         function getBurpState() {
             const raw = localStorage.getItem(BURP_SESSION_KEY);
@@ -308,12 +298,7 @@
         }
 
         function startBurpTimer() {
-            const mins = parseInt(document.getElementById('burp-duration').value, 10);
-            if (!mins || mins < 1 || mins > 60) {
-                showToast('Enter a duration between 1 and 60 minutes.', 'error');
-                return;
-            }
-            localStorage.setItem(BURP_SESSION_KEY, JSON.stringify({ startTs: Date.now(), totalDuration: mins * 60 }));
+            localStorage.setItem(BURP_SESSION_KEY, JSON.stringify({ startTs: Date.now(), totalDuration: burpTotalMin * 60 }));
             burpPrevPhase = 'down';
             document.getElementById('burp-setup').style.display = 'none';
             document.getElementById('burp-done').style.display = 'none';
@@ -346,17 +331,19 @@
         function updateBurpDisplay() {
             const state = getBurpState();
             if (!state) return;
-            document.getElementById('burp-phase-display').className = 'burp-phase-display ' + state.phase;
+            document.getElementById('burp-phase-display').className = 'burp-panel ' + state.phase;
             if (state.phase === 'down') {
                 document.getElementById('burp-phase-icon').innerHTML = icon('arrow-down', 'icon-2xl');
                 document.getElementById('burp-phase-label').textContent = 'DOWN';
+                document.getElementById('burp-phase-hint').textContent = 'Hold baby lying down';
             } else {
                 document.getElementById('burp-phase-icon').innerHTML = icon('arrow-up', 'icon-2xl');
                 document.getElementById('burp-phase-label').textContent = 'UP';
+                document.getElementById('burp-phase-hint').textContent = 'Hold baby upright';
             }
             document.getElementById('burp-phase-countdown').textContent = formatSecsToTimer(state.phaseRemaining);
             document.getElementById('burp-cycle-label').textContent = 'Cycle ' + state.cycle;
-            document.getElementById('burp-total-countdown').textContent = formatSecsToTimer(state.totalRemaining) + ' remaining';
+            document.getElementById('burp-total-countdown').textContent = formatSecsToTimer(state.totalRemaining) + ' left';
             document.getElementById('burp-progress-fill').style.width =
                 ((state.totalDuration - state.totalRemaining) / state.totalDuration * 100) + '%';
         }
@@ -391,6 +378,7 @@
         }
 
         function playBurpChime(isEnd) {
+            if (!burpSoundOn()) return;
             try {
                 if (!burpAudioCtx) burpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const ctx = burpAudioCtx;
@@ -457,80 +445,110 @@
             }
         });
 
-        // --- Component toggles (multi-select) ---
-        function toggleComponent(type) {
-            if (activeComponents.has(type)) {
-                if (activeComponents.size === 1) return; // keep at least one
-                activeComponents.delete(type);
-            } else {
-                activeComponents.add(type);
+        // ============================================================
+        //  Quick-log sheet (Breast L/R · Bottle · Solids)
+        // ============================================================
+        let logType = null;
+        let logSide = 'left';
+
+        function openLogSheet(type, side) {
+            logType = type;
+            logSide = side || 'left';
+            const titles = { breast: 'Log a breast feed', bottle: 'Log a bottle', solids: 'Log solids' };
+            document.getElementById('log-sheet-title').textContent = titles[type];
+
+            let html = '';
+            if (type === 'breast') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Side</label>
+                        <div class="toggle-group">
+                            <button class="toggle-btn ${logSide === 'left' ? 'active' : ''}" data-side="left" onclick="setLogSide('left')">Left</button>
+                            <button class="toggle-btn ${logSide === 'right' ? 'active' : ''}" data-side="right" onclick="setLogSide('right')">Right</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="log-duration">Duration (minutes) <span class="optional-hint">(optional)</span></label>
+                        <input type="number" id="log-duration" class="form-input" placeholder="e.g. 12" min="0" step="1" inputmode="numeric">
+                    </div>`;
             }
-            document.querySelectorAll('.component-toggle').forEach(b => {
-                b.classList.toggle('active', activeComponents.has(b.dataset.component));
-            });
-            updateVisibility();
+            if (type === 'bottle') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label" for="log-volume">Volume (ml)</label>
+                        <input type="number" id="log-volume" class="form-input" placeholder="e.g. 120" min="0" step="5" inputmode="numeric" autofocus>
+                    </div>`;
+            }
+            html += `
+                <div class="form-group">
+                    <label class="form-label" for="log-time">Time <span class="optional-hint">(defaults to now)</span></label>
+                    <input type="datetime-local" id="log-time" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="log-notes">Notes</label>
+                    <textarea id="log-notes" class="form-textarea" placeholder="Optional notes…" rows="2"></textarea>
+                </div>
+                <button class="btn btn-primary" id="log-save-btn" onclick="saveLogSheet()">Save feed</button>`;
+
+            document.getElementById('log-sheet-body').innerHTML = html;
+            document.getElementById('log-sheet').classList.add('open');
+            document.body.classList.add('modal-open');
         }
 
-        // --- Save Feed (handles all components) ---
-        async function saveFeed() {
-            const userId = await getUserId();
-            const sessionId = uuid();
-            const notes = document.getElementById('notes').value.trim() || null;
-            const records = [];
+        function setLogSide(side) {
+            logSide = side;
+            document.querySelectorAll('#log-sheet [data-side]').forEach(b =>
+                b.classList.toggle('active', b.dataset.side === side));
+        }
 
-            if (activeComponents.has('bottle')) {
-                const vol = document.getElementById('volume').value;
-                if (!vol || Number(vol) <= 0) {
+        function closeLogSheet() {
+            document.getElementById('log-sheet').classList.remove('open');
+            document.body.classList.remove('modal-open');
+            logType = null;
+        }
+
+        async function saveLogSheet() {
+            const userId = await getUserId();
+            const timeInput = document.getElementById('log-time').value;
+            const startTime = timeInput ? new Date(timeInput) : new Date();
+            const notes = document.getElementById('log-notes').value.trim() || null;
+
+            const record = {
+                user_id: userId,
+                session_id: uuid(),
+                feed_type: logType,
+                start_time: startTime.toISOString(),
+                end_time: startTime.toISOString(),
+                notes,
+            };
+
+            if (logType === 'breast') {
+                record.breast_side = logSide;
+                const mins = Number(document.getElementById('log-duration').value);
+                record.end_time = mins > 0 ? new Date(startTime.getTime() + mins * 60000).toISOString() : null;
+            }
+            if (logType === 'bottle') {
+                const vol = Number(document.getElementById('log-volume').value);
+                if (!vol || vol <= 0) {
                     showToast('Enter a bottle volume.', 'error');
                     return;
                 }
-                // Use optional bottle time if set, otherwise current time
-                const bottleTimeInput = document.getElementById('bottle-time').value;
-                const bottleTime = bottleTimeInput ? new Date(bottleTimeInput).toISOString() : new Date().toISOString();
-                records.push({
-                    user_id: userId, session_id: sessionId,
-                    feed_type: 'bottle', volume_ml: Number(vol),
-                    start_time: bottleTime,
-                    end_time: bottleTime,
-                    notes: records.length === 0 ? notes : null,
-                });
+                record.volume_ml = vol;
             }
 
-            if (activeComponents.has('solids')) {
-                // Use optional solids time if set, otherwise current time
-                const solidsTimeInput = document.getElementById('solids-time').value;
-                const solidsTime = solidsTimeInput ? new Date(solidsTimeInput).toISOString() : new Date().toISOString();
-                records.push({
-                    user_id: userId, session_id: sessionId,
-                    feed_type: 'solids',
-                    start_time: solidsTime,
-                    end_time: solidsTime,
-                    notes: records.length === 0 ? notes : null,
-                });
-            }
-
-            if (records.length === 0) {
-                showToast('No feed data to save.', 'error');
-                return;
-            }
-
-            const { error } = await sb.from('feedings').insert(records);
+            const btn = document.getElementById('log-save-btn');
+            btn.disabled = true;
+            const { error } = await sb.from('feedings').insert(record);
+            btn.disabled = false;
             if (error) {
                 showToast('Error saving: ' + error.message, 'error');
                 return;
             }
 
-            showToast('Feeding logged!');
-            resetForm();
+            showToast('Feed logged!');
+            closeLogSheet();
             await loadEntries();
             await loadChart();
-        }
-
-        function resetForm() {
-            document.getElementById('notes').value = '';
-            document.getElementById('volume').value = '';
-            document.getElementById('bottle-time').value = '';
-            document.getElementById('solids-time').value = '';
         }
 
         // --- Load entries (grouped by session, paginated) ---
@@ -552,7 +570,6 @@
                 showToast('Error loading feedings: ' + error.message, 'error');
             }
 
-            // Group by session_id (or treat each entry as its own session if no session_id)
             const sessions = new Map();
             (data || []).forEach(entry => {
                 const key = entry.session_id || entry.id;
@@ -562,6 +579,28 @@
 
             allSessions = Array.from(sessions.values());
             renderEntriesPage();
+            renderTodaySummary();
+        }
+
+        function renderTodaySummary() {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const sessionTimes = allSessions.map(entries =>
+                entries.reduce((a, b) => new Date(a.start_time) < new Date(b.start_time) ? a : b))
+                .map(e => new Date(e.start_time));
+
+            const todayCount = sessionTimes.filter(t => t >= todayStart).length;
+            document.getElementById('sum-count').textContent = todayCount;
+
+            let ml = 0;
+            allSessions.flat().forEach(e => {
+                if (e.feed_type === 'bottle' && e.volume_ml && new Date(e.start_time) >= todayStart) ml += e.volume_ml;
+            });
+            document.getElementById('sum-ml').innerHTML = ml > 0 ? `${ml}<span class="unit">ml</span>` : '—';
+
+            const latest = sessionTimes.length ? new Date(Math.max(...sessionTimes)) : null;
+            document.getElementById('sum-since').textContent = latest ? formatDuration(Math.max(0, Date.now() - latest)) : '—';
         }
 
         function changePage(delta) {
@@ -577,7 +616,7 @@
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">${icon('milk', 'icon-2xl')}</div>
-                        <div class="empty-state-text">No feedings logged yet</div>
+                        <div class="empty-state-text">No feeds logged yet</div>
                     </div>`;
                 pagBar.style.display = 'none';
                 return;
@@ -587,7 +626,7 @@
             currentPage = Math.min(Math.max(1, currentPage), totalPages);
             const pageSessions = allSessions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-            container.innerHTML = pageSessions.map(renderSessionItem).join('');
+            container.innerHTML = pageSessions.map(renderSessionRow).join('');
 
             pagBar.style.display = totalPages > 1 ? 'flex' : 'none';
             document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
@@ -595,86 +634,61 @@
             document.getElementById('page-next').disabled = currentPage === totalPages;
         }
 
-        function renderSessionItem(entries) {
-            let html = '';
+        function renderSessionRow(entries) {
             const sessionId = entries[0].session_id;
-                const isMulti = entries.length > 1;
-                const earliest = entries.reduce((a, b) => new Date(a.start_time) < new Date(b.start_time) ? a : b);
-                const notes = entries.find(e => e.notes)?.notes;
+            const earliest = entries.reduce((a, b) => new Date(a.start_time) < new Date(b.start_time) ? a : b);
+            const notes = entries.find(e => e.notes)?.notes;
 
-                if (isMulti) {
-                    // Multi-component feed
-                    const components = entries.map(e => {
-                        const feedIcon = e.feed_type === 'bottle' ? icon('milk') : e.feed_type === 'solids' ? icon('utensils') : e.feed_type === 'burp' ? icon('wind') : icon('milk');
-                        let label = '';
-                        if (e.feed_type === 'breast') {
-                            const side = e.breast_side ? e.breast_side.charAt(0).toUpperCase() + e.breast_side.slice(1) : '';
-                            const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
-                            label = `${feedIcon} ${side} · ${dur}`;
-                        } else if (e.feed_type === 'bottle') {
-                            label = `${feedIcon} ${e.volume_ml ? e.volume_ml + ' mL' : 'Bottle'}`;
-                        } else {
-                            const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : '—';
-                            label = `${feedIcon} Solids · ${dur}`;
-                        }
-                        return `<div class="session-component">${label}</div>`;
-                    }).join('');
+            const types = [];
+            entries.forEach(e => {
+                const t = e.feed_type.charAt(0).toUpperCase() + e.feed_type.slice(1);
+                if (!types.includes(t)) types.push(t);
+            });
 
-                    html += `
-                        <div class="entry-item entry-session">
-                            <div class="entry-content">
-                                <div class="session-components">${components}</div>
-                                ${notes ? `<div class="entry-meta">${notes}</div>` : ''}
-                            </div>
-                            <div class="entry-time">${formatDateTime(earliest.start_time)}</div>
-                            <div class="entry-actions">
-                                <button class="btn-icon edit" onclick="openEditModal('${sessionId || entries[0].id}')" title="Edit">${icon('pencil')}</button>
-                                <button class="btn-icon delete" onclick="confirmDelete('${entries[0].id}', '${sessionId || ''}')" title="Delete">${icon('trash-2')}</button>
-                            </div>
-                        </div>`;
-                } else {
-                    // Single-component feed
-                    const entry = entries[0];
-                    const feedIcon = entry.feed_type === 'bottle' ? icon('milk') : entry.feed_type === 'solids' ? icon('utensils') : entry.feed_type === 'burp' ? icon('wind') : icon('milk');
-                    const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
-                    let detail = '';
-                    if (entry.feed_type === 'breast' && entry.breast_side) {
-                        detail = entry.breast_side.charAt(0).toUpperCase() + entry.breast_side.slice(1);
-                    }
-                    if (entry.feed_type === 'bottle' && entry.volume_ml) {
-                        detail = entry.volume_ml + ' mL';
-                    }
-                    const duration = entry.end_time ? formatDuration(durationBetween(entry.start_time, entry.end_time)) : '—';
-                    const entryNotes = entry.notes ? ` · ${entry.notes}` : '';
-
-                    html += `
-                        <div class="entry-item">
-                            <div class="entry-icon">${feedIcon}</div>
-                            <div class="entry-content">
-                                <div class="entry-title">${typeLabel}${detail ? ' · ' + detail : ''}</div>
-                                <div class="entry-meta">${duration}${entryNotes}</div>
-                            </div>
-                            <div class="entry-time">${formatDateTime(entry.start_time)}</div>
-                            <div class="entry-actions">
-                                <button class="btn-icon edit" onclick="openEditModal('${entry.session_id || entry.id}')" title="Edit">${icon('pencil')}</button>
-                                <button class="btn-icon delete" onclick="confirmDelete('${entry.id}', '${entry.session_id || ''}')" title="Delete">${icon('trash-2')}</button>
-                            </div>
-                        </div>`;
+            const details = entries.map(e => {
+                if (e.feed_type === 'breast') {
+                    const side = e.breast_side ? e.breast_side.charAt(0).toUpperCase() + e.breast_side.slice(1) : 'Breast';
+                    const dur = e.end_time ? formatDuration(durationBetween(e.start_time, e.end_time)) : null;
+                    return dur ? `${side} ${dur}` : side;
                 }
-            return html;
+                if (e.feed_type === 'bottle') return e.volume_ml ? `${e.volume_ml} ml` : 'Bottle';
+                if (e.feed_type === 'solids') return 'Solids';
+                return e.feed_type;
+            });
+            if (notes) details.push(escapeHtml(notes));
+
+            const iconName = entries.some(e => e.feed_type === 'solids') && entries.length === 1 ? 'utensils' : 'milk';
+            const start = new Date(earliest.start_time);
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const when = start >= todayStart
+                ? formatTime(earliest.start_time)
+                : `${formatDate(earliest.start_time)} · ${formatTime(earliest.start_time)}`;
+
+            return `
+                <div class="row">
+                    <span class="chip chip-sm cat-feed">${icon(iconName)}</span>
+                    <div class="row-body">
+                        <div class="row-title">${types.join(' + ')}</div>
+                        <div class="row-meta">${details.join(' · ')}</div>
+                    </div>
+                    <span class="row-time">${when}</span>
+                    <div class="row-actions">
+                        <button class="btn-icon edit" onclick="openEditModal('${sessionId || entries[0].id}')" title="Edit">${icon('pencil')}</button>
+                        <button class="btn-icon delete" onclick="confirmDelete('${entries[0].id}', '${sessionId || ''}')" title="Delete">${icon('trash-2')}</button>
+                    </div>
+                </div>`;
         }
 
         // --- Delete ---
         function confirmDelete(id, sessionId) {
             deleteId = id;
             deleteSessionId = sessionId || null;
-            const modal = document.getElementById('delete-modal');
-            modal.style.display = 'flex';
+            document.getElementById('delete-modal').classList.add('open');
             document.body.classList.add('modal-open');
             document.getElementById('confirm-delete-btn').onclick = async () => {
                 let error;
                 if (deleteSessionId) {
-                    // Delete all records in the session
                     ({ error } = await sb.from('feedings').delete().eq('session_id', deleteSessionId));
                 } else {
                     ({ error } = await sb.from('feedings').delete().eq('id', deleteId));
@@ -691,22 +705,20 @@
         }
 
         function closeDeleteModal() {
-            document.getElementById('delete-modal').style.display = 'none';
+            document.getElementById('delete-modal').classList.remove('open');
             document.body.classList.remove('modal-open');
             deleteId = null;
             deleteSessionId = null;
         }
 
-        // --- Edit Modal ---
+        // --- Edit Modal (multi-component sessions) ---
         let editSessionId = null;
-        let editRemovedIds = []; // IDs of existing records to delete on save
+        let editRemovedIds = [];
 
         async function openEditModal(sessionOrId) {
             const userId = await getUserId();
-            // Try fetching by session_id first
             let { data } = await sb.from('feedings').select('*').eq('session_id', sessionOrId).eq('user_id', userId);
             if (!data || data.length === 0) {
-                // Fallback: fetch by id
                 ({ data } = await sb.from('feedings').select('*').eq('id', sessionOrId).eq('user_id', userId));
             }
             if (!data || data.length === 0) {
@@ -718,11 +730,8 @@
             editSessionId = data[0].session_id || uuid();
             editRemovedIds = [];
 
-            // Ensure all entries share the session_id (for legacy entries without one)
-            editEntries.forEach(e => { e._editSessionId = editSessionId; });
-
             renderEditModal();
-            document.getElementById('edit-modal').style.display = 'flex';
+            document.getElementById('edit-modal').classList.add('open');
             document.body.classList.add('modal-open');
         }
 
@@ -730,7 +739,6 @@
             const body = document.getElementById('edit-modal-body');
             let html = '';
 
-            // Existing component cards
             editEntries.forEach((entry, idx) => {
                 const feedIcon = entry.feed_type === 'bottle' ? icon('milk') : entry.feed_type === 'solids' ? icon('utensils') : icon('milk');
                 const typeLabel = entry.feed_type.charAt(0).toUpperCase() + entry.feed_type.slice(1);
@@ -765,7 +773,7 @@
                 if (entry.feed_type === 'bottle') {
                     html += `
                         <div class="form-group">
-                            <label class="form-label">Volume (mL)</label>
+                            <label class="form-label">Volume (ml)</label>
                             <input type="number" class="form-input" id="edit-volume-${idx}" value="${entry.volume_ml || ''}" min="0" step="5">
                         </div>
                         <div class="form-group">
@@ -787,40 +795,35 @@
                 }
 
                 html += `
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom:0">
                         <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="edit-notes-${idx}" rows="1">${entry.notes || ''}</textarea>
+                        <textarea class="form-textarea" id="edit-notes-${idx}" rows="1">${escapeHtml(entry.notes || '')}</textarea>
                     </div>
                 </div>`;
             });
 
-            // Add Component bar
             html += `
                 <div class="edit-add-bar">
-                    <label class="form-label">Add Component</label>
+                    <label class="form-label">Add component</label>
                     <div class="edit-add-buttons">
+                        <button class="btn btn-secondary btn-small" onclick="addEditComponent('breast')">${icon('milk')} Breast</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('bottle')">${icon('milk')} Bottle</button>
                         <button class="btn btn-secondary btn-small" onclick="addEditComponent('solids')">${icon('utensils')} Solids</button>
                     </div>
                 </div>`;
 
-            html += `<div style="display:flex; gap:8px; margin-top:16px;">
-                <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1;">Cancel</button>
-                <button class="btn btn-primary" onclick="saveEdit()" style="flex:1;">Save Changes</button>
+            html += `<div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEdit()" style="flex:1">Save</button>
             </div>`;
 
             body.innerHTML = html;
         }
 
         function addEditComponent(feedType, side) {
-            // Collect current form values before re-render
             collectEditFormValues();
-
-            // Reference time from existing entries
             const refTime = editEntries.length > 0 ? editEntries[0].start_time : new Date().toISOString();
-
             const newEntry = {
-                // no id means it's new and will be inserted on save
                 feed_type: feedType,
                 start_time: refTime,
                 end_time: feedType === 'bottle' ? refTime : null,
@@ -828,22 +831,15 @@
             };
             if (feedType === 'breast') newEntry.breast_side = side || 'left';
             if (feedType === 'bottle') newEntry.volume_ml = null;
-
             editEntries.push(newEntry);
             renderEditModal();
         }
 
         function removeEditComponent(idx) {
-            // Collect form values first
             collectEditFormValues();
-
             const entry = editEntries[idx];
-            if (entry.id) {
-                // Existing DB record — mark for deletion
-                editRemovedIds.push(entry.id);
-            }
+            if (entry.id) editRemovedIds.push(entry.id);
             editEntries.splice(idx, 1);
-
             if (editEntries.length === 0) {
                 closeEditModal();
                 return;
@@ -851,7 +847,6 @@
             renderEditModal();
         }
 
-        // Reads current form input values back into editEntries before re-render
         function collectEditFormValues() {
             editEntries.forEach((entry, i) => {
                 const startEl = document.getElementById(`edit-start-${i}`);
@@ -875,11 +870,8 @@
 
         async function saveEdit() {
             const userId = await getUserId();
-
-            // Collect final form values
             collectEditFormValues();
 
-            // 1. Delete removed components
             for (const id of editRemovedIds) {
                 const { error } = await sb.from('feedings').delete().eq('id', id);
                 if (error) {
@@ -888,7 +880,6 @@
                 }
             }
 
-            // 2. Update existing + insert new
             for (const entry of editEntries) {
                 const record = {
                     feed_type: entry.feed_type,
@@ -901,14 +892,12 @@
                 };
 
                 if (entry.id) {
-                    // Update existing
                     const { error } = await sb.from('feedings').update(record).eq('id', entry.id);
                     if (error) {
                         showToast('Error updating: ' + error.message, 'error');
                         return;
                     }
                 } else {
-                    // Insert new component
                     record.user_id = userId;
                     const { error } = await sb.from('feedings').insert(record);
                     if (error) {
@@ -918,9 +907,6 @@
                 }
             }
 
-            // 3. If original entries had no session_id, update them to share one now
-            // (this is already handled above since we set session_id on all updates)
-
             showToast('Feed updated!');
             closeEditModal();
             await loadEntries();
@@ -928,14 +914,16 @@
         }
 
         function closeEditModal() {
-            document.getElementById('edit-modal').style.display = 'none';
+            document.getElementById('edit-modal').classList.remove('open');
             document.body.classList.remove('modal-open');
             editEntries = null;
             editSessionId = null;
             editRemovedIds = [];
         }
 
-        // --- Chart ---
+        // ============================================================
+        //  Charts + insights (over the selected range)
+        // ============================================================
         function setupRangeButtons() {
             document.getElementById('date-range-bar').addEventListener('click', (e) => {
                 const btn = e.target.closest('.range-btn');
@@ -951,32 +939,7 @@
             chartView = view;
             document.getElementById('chart-view-bytype').classList.toggle('active', view === 'byType');
             document.getElementById('chart-view-total').classList.toggle('active', view === 'total');
-            loadChart();
-        }
-
-        // Day labels and data grouping must share the same (local) timezone.
-        // Previously labels were generated from local-midnight boundaries but
-        // formatted in Australia/Darwin, so on devices in other timezones the
-        // label list ended at yesterday and today's data never appeared.
-        function dayKey(date) {
-            return new Date(date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-        }
-
-        function generateDateLabels() {
-            const { start, end } = getDateRange(currentRange);
-            const labels = [];
-            const d = new Date(start);
-            d.setHours(0, 0, 0, 0);
-            const rangeEnd = new Date(end);
-            while (d <= rangeEnd) {
-                labels.push(dayKey(d));
-                d.setDate(d.getDate() + 1);
-            }
-            return labels;
-        }
-
-        function mapToLabels(labels, grouped) {
-            return labels.map(l => grouped[l] || 0);
+            renderFeedChart();
         }
 
         function rangeDayCount() {
@@ -988,6 +951,26 @@
                 default: return 7;
             }
         }
+
+        // Day buckets covering the selected range (local timezone)
+        function rangeDays() {
+            const { start, end } = getDateRange(currentRange);
+            const days = [];
+            const d = new Date(start);
+            d.setHours(0, 0, 0, 0);
+            const rangeEnd = new Date(end);
+            const short = rangeDayCount() <= 7;
+            while (d <= rangeEnd) {
+                days.push({
+                    key: d.toLocaleDateString('en-CA'),
+                    label: short ? d.toLocaleDateString('en-AU', { weekday: 'narrow' }) : String(d.getDate()),
+                });
+                d.setDate(d.getDate() + 1);
+            }
+            return days;
+        }
+
+        let chartEntries = [];
 
         async function loadChart() {
             const userId = await getUserId();
@@ -1005,321 +988,106 @@
                 console.error('Failed to load chart data:', error.message);
             }
 
-            const entries = data || [];
-            const labels = generateDateLabels();
+            chartEntries = data || [];
+            renderFeedChart();
+            renderInsights();
+        }
 
-            renderAnalytics(entries);
+        function renderFeedChart() {
+            const days = rangeDays();
+            const el = document.getElementById('feed-chart');
+            const legend = document.getElementById('feed-legend');
 
-            // Always accumulate mL data for the overlay line
-            const mlGrouped = {};
-            entries.forEach(e => {
-                if (e.feed_type === 'bottle' && e.volume_ml) {
-                    const day = dayKey(e.start_time);
-                    mlGrouped[day] = (mlGrouped[day] || 0) + e.volume_ml;
+            if (chartView === 'byType') {
+                const perDay = days.map(d => {
+                    const inDay = chartEntries.filter(e => new Date(e.start_time).toLocaleDateString('en-CA') === d.key);
+                    return {
+                        label: d.label,
+                        segs: [
+                            { value: inDay.filter(e => e.feed_type === 'bottle').length, color: 'var(--c-feed)' },
+                            { value: inDay.filter(e => e.feed_type === 'breast').length, color: 'color-mix(in srgb, var(--c-sleep) 60%, transparent)' },
+                            { value: inDay.filter(e => e.feed_type !== 'bottle' && e.feed_type !== 'breast').length, color: 'color-mix(in srgb, var(--c-nappy) 55%, transparent)' },
+                        ],
+                    };
+                });
+                renderStackedBarChart(el, perDay);
+
+                const bottle = chartEntries.filter(e => e.feed_type === 'bottle').length;
+                const breast = chartEntries.filter(e => e.feed_type === 'breast').length;
+                const solids = chartEntries.filter(e => e.feed_type !== 'bottle' && e.feed_type !== 'breast').length;
+                const milkTotal = bottle + breast;
+                let legendHtml = '';
+                if (milkTotal > 0) {
+                    legendHtml += `
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--c-feed)"></span>Bottle ${Math.round(bottle / milkTotal * 100)}%</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:color-mix(in srgb, var(--c-sleep) 60%, transparent)"></span>Breast ${Math.round(breast / milkTotal * 100)}%</div>`;
                 }
-            });
-
-            const mlData = mapToLabels(labels, mlGrouped);
-            const hasML = mlData.some(v => v > 0);
-
-            let datasets;
-
-            if (chartView === 'total') {
-                // Count distinct sessions per day
-                const sessionsByDay = {};
-                entries.forEach(e => {
-                    const day = dayKey(e.start_time);
-                    if (!sessionsByDay[day]) sessionsByDay[day] = new Set();
-                    sessionsByDay[day].add(e.session_id || e.start_time);
-                });
-                const totalGrouped = {};
-                Object.keys(sessionsByDay).forEach(day => {
-                    totalGrouped[day] = sessionsByDay[day].size;
-                });
-                datasets = [{
-                    label: 'Total Sessions',
-                    data: mapToLabels(labels, totalGrouped),
-                    backgroundColor: 'rgba(108, 99, 255, 0.15)',
-                    borderColor: '#6c63ff',
-                    borderWidth: 1.5,
-                    borderRadius: 4,
-                    yAxisID: 'y',
-                }];
+                if (solids > 0) {
+                    legendHtml += `<div class="legend-item"><span class="legend-dot" style="background:color-mix(in srgb, var(--c-nappy) 55%, transparent)"></span>Solids ${solids}</div>`;
+                }
+                legend.innerHTML = legendHtml;
+                legend.style.display = legendHtml ? 'flex' : 'none';
             } else {
-                const breastGrouped = {};
-                const bottleGrouped = {};
-                const solidsGrouped = {};
-
-                entries.forEach(e => {
-                    const day = dayKey(e.start_time);
-                    if (e.feed_type === 'breast') breastGrouped[day] = (breastGrouped[day] || 0) + 1;
-                    else if (e.feed_type === 'bottle') bottleGrouped[day] = (bottleGrouped[day] || 0) + 1;
-                    else solidsGrouped[day] = (solidsGrouped[day] || 0) + 1;
+                // Total distinct sessions per day
+                const perDay = days.map(d => {
+                    const set = new Set();
+                    chartEntries.forEach(e => {
+                        if (new Date(e.start_time).toLocaleDateString('en-CA') === d.key) set.add(e.session_id || e.id);
+                    });
+                    return { value: set.size, label: d.label };
                 });
-
-                datasets = [
-                    {
-                        label: 'Breast',
-                        data: mapToLabels(labels, breastGrouped),
-                        backgroundColor: 'rgba(108, 99, 255, 0.15)',
-                        borderColor: '#6c63ff',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        yAxisID: 'y',
-                    },
-                    {
-                        label: 'Bottle',
-                        data: mapToLabels(labels, bottleGrouped),
-                        backgroundColor: 'rgba(76, 201, 240, 0.15)',
-                        borderColor: '#4cc9f0',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        yAxisID: 'y',
-                    },
-                    {
-                        label: 'Solids',
-                        data: mapToLabels(labels, solidsGrouped),
-                        backgroundColor: 'rgba(245, 166, 35, 0.15)',
-                        borderColor: '#f5a623',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        yAxisID: 'y',
-                    },
-                ];
+                renderBarChart(el, perDay);
+                legend.style.display = 'none';
             }
-
-            // Add mL overlay line if there's bottle volume data
-            if (hasML) {
-                datasets.push({
-                    label: 'Bottle mL',
-                    data: mlData,
-                    type: 'line',
-                    borderColor: '#4cc9f0',
-                    backgroundColor: 'rgba(76, 201, 240, 0.08)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#4cc9f0',
-                    tension: 0.3,
-                    fill: true,
-                    yAxisID: 'y1',
-                });
-            }
-
-            const isStacked = chartView === 'byType';
-
-            if (feedingChart) feedingChart.destroy();
-            feedingChart = new Chart(document.getElementById('feeding-chart'), {
-                type: 'bar',
-                data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: { boxWidth: 12, padding: 12 },
-                        },
-                        tooltip: {
-                            backgroundColor: '#1e2029',
-                            borderColor: '#2e3142',
-                            borderWidth: 1,
-                            padding: 10,
-                            cornerRadius: 8,
-                        },
-                    },
-                    scales: {
-                        x: {
-                            stacked: isStacked,
-                            grid: { display: false },
-                            ticks: { maxRotation: 45, font: { size: 11 }, maxTicksLimit: 10 },
-                        },
-                        y: {
-                            stacked: isStacked,
-                            beginAtZero: true,
-                            grid: { color: '#2e3142' },
-                            title: { display: true, text: 'Count', font: { size: 12 } },
-                            ticks: { font: { size: 11 }, precision: 0 },
-                        },
-                        ...(hasML ? {
-                            y1: {
-                                position: 'right',
-                                beginAtZero: true,
-                                grid: { display: false },
-                                title: { display: true, text: 'mL', font: { size: 12 } },
-                                ticks: { font: { size: 11 }, precision: 0 },
-                            },
-                        } : {}),
-                    },
-                },
-            });
         }
 
-        // --- Analytics ---
-        let hourlyChart = null;
-
-        function formatHour(h) {
-            h = ((h % 24) + 24) % 24;
-            const display = h % 12 === 0 ? 12 : h % 12;
-            return display + (h < 12 ? 'am' : 'pm');
-        }
-
-        function renderAnalytics(entries) {
+        function renderInsights() {
             const dayCount = rangeDayCount();
 
-            // Distinct feed sessions, keyed on earliest start time per session
+            // Distinct sessions keyed on earliest start time
             const sessionTimes = new Map();
-            entries.forEach(e => {
+            chartEntries.forEach(e => {
                 const key = e.session_id || e.id;
                 const t = new Date(e.start_time);
                 if (!sessionTimes.has(key) || t < sessionTimes.get(key)) sessionTimes.set(key, t);
             });
             const times = Array.from(sessionTimes.values()).sort((a, b) => a - b);
 
-            // Feed count by hour of day
-            const hourCounts = new Array(24).fill(0);
-            times.forEach(t => hourCounts[t.getHours()]++);
-            const peakHour = times.length ? hourCounts.indexOf(Math.max(...hourCounts)) : null;
-
-            // Bottle volume stats
-            const bottles = entries.filter(e => e.feed_type === 'bottle' && e.volume_ml);
+            const bottles = chartEntries.filter(e => e.feed_type === 'bottle' && e.volume_ml);
             const totalML = bottles.reduce((sum, b) => sum + b.volume_ml, 0);
-            const avgPerFeed = bottles.length ? totalML / bottles.length : null;
             const maxBottle = bottles.length ? Math.max(...bottles.map(b => b.volume_ml)) : null;
 
-            // Average volume given in each hour of day, across the range
-            const hourML = new Array(24).fill(0);
-            bottles.forEach(b => { hourML[new Date(b.start_time).getHours()] += b.volume_ml; });
-            const avgHourML = hourML.map(v => v / dayCount);
-            const peakVolHour = totalML > 0 ? hourML.indexOf(Math.max(...hourML)) : null;
-
-            // Gaps between consecutive feed sessions
             let avgGap = null;
             let maxGap = null;
             if (times.length > 1) {
                 const gaps = [];
                 for (let i = 1; i < times.length; i++) gaps.push(times[i] - times[i - 1]);
-                avgGap = gaps.reduce((sum, g) => sum + g, 0) / gaps.length;
+                avgGap = gaps.reduce((s, g) => s + g, 0) / gaps.length;
                 maxGap = Math.max(...gaps);
             }
 
-            const cards = [
-                {
-                    label: 'Feeds / Day',
-                    value: times.length ? (times.length / dayCount).toFixed(1) : '—',
-                    detail: `${times.length} in range`,
-                },
-                {
-                    label: 'Most Common Time',
-                    value: peakHour !== null ? `${formatHour(peakHour)}–${formatHour(peakHour + 1)}` : '—',
-                    detail: peakHour !== null ? `${hourCounts[peakHour]} feeds in this hour` : 'No data',
-                },
-                {
-                    label: 'Avg Between Feeds',
-                    value: avgGap !== null ? formatDuration(avgGap) : '—',
-                    detail: maxGap !== null ? `Longest gap: ${formatDuration(maxGap)}` : 'No data',
-                },
-                {
-                    label: 'Avg Volume / Feed',
-                    value: avgPerFeed !== null ? `${Math.round(avgPerFeed)} mL` : '—',
-                    detail: maxBottle !== null ? `Biggest bottle: ${maxBottle} mL` : 'No bottle data',
-                },
-                {
-                    label: 'Avg Volume / Day',
-                    value: totalML > 0 ? `${Math.round(totalML / dayCount)} mL` : '—',
-                    detail: totalML > 0 ? `${totalML} mL total in range` : 'No bottle data',
-                },
-                {
-                    label: 'Peak Volume Hour',
-                    value: peakVolHour !== null ? `${formatHour(peakVolHour)}–${formatHour(peakVolHour + 1)}` : '—',
-                    detail: peakVolHour !== null ? `avg ${Math.round(avgHourML[peakVolHour])} mL/day` : 'No bottle data',
-                },
+            // day = 7am–7pm, night = the rest (avg per day across range)
+            const dayFeeds = times.filter(t => t.getHours() >= 7 && t.getHours() < 19).length;
+            const nightFeeds = times.length - dayFeeds;
+
+            const cells = [
+                { value: times.length ? (times.length / dayCount).toFixed(1) : '—', label: 'feeds / day' },
+                { value: totalML > 0 ? `${Math.round(totalML / dayCount)}<span class="unit">ml</span>` : '—', label: 'avg / day' },
+                { value: avgGap !== null ? formatDuration(avgGap) : '—', label: 'avg gap' },
+                { value: maxGap !== null ? formatDuration(maxGap) : '—', label: 'longest gap' },
+                { value: times.length ? `${(dayFeeds / dayCount).toFixed(dayCount > 1 ? 1 : 0)} · ${(nightFeeds / dayCount).toFixed(dayCount > 1 ? 1 : 0)}` : '—', label: 'day · night' },
+                { value: maxBottle !== null ? `${maxBottle}<span class="unit">ml</span>` : '—', label: 'biggest feed' },
             ];
 
-            document.getElementById('analytics-grid').innerHTML = cards.map(c => `
-                <div class="summary-card">
-                    <div class="summary-label">${c.label}</div>
-                    <div class="summary-value">${c.value}</div>
-                    <div class="summary-detail">${c.detail}</div>
+            document.getElementById('insights-grid').innerHTML = cells.map(c => `
+                <div class="inset-cell">
+                    <div class="inset-value">${c.value}</div>
+                    <div class="inset-label">${c.label}</div>
                 </div>`).join('');
 
-            renderHourlyChart(hourCounts, avgHourML);
-        }
-
-        function renderHourlyChart(hourCounts, avgHourML) {
-            const labels = Array.from({ length: 24 }, (_, h) => formatHour(h));
-            const hasML = avgHourML.some(v => v > 0);
-
-            const datasets = [{
-                label: 'Feeds',
-                data: hourCounts,
-                backgroundColor: 'rgba(108, 99, 255, 0.15)',
-                borderColor: '#6c63ff',
-                borderWidth: 1.5,
-                borderRadius: 4,
-                yAxisID: 'y',
-            }];
-
-            if (hasML) {
-                datasets.push({
-                    label: 'Avg mL / hour',
-                    data: avgHourML.map(v => Math.round(v)),
-                    type: 'line',
-                    borderColor: '#4cc9f0',
-                    backgroundColor: 'rgba(76, 201, 240, 0.08)',
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    pointBackgroundColor: '#4cc9f0',
-                    tension: 0.3,
-                    fill: true,
-                    yAxisID: 'y1',
-                });
-            }
-
-            if (hourlyChart) hourlyChart.destroy();
-            hourlyChart = new Chart(document.getElementById('hourly-chart'), {
-                type: 'bar',
-                data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: { boxWidth: 12, padding: 12 },
-                        },
-                        tooltip: {
-                            backgroundColor: '#1e2029',
-                            borderColor: '#2e3142',
-                            borderWidth: 1,
-                            padding: 10,
-                            cornerRadius: 8,
-                        },
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { maxRotation: 0, font: { size: 10 }, maxTicksLimit: 12 },
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#2e3142' },
-                            title: { display: true, text: 'Feeds', font: { size: 12 } },
-                            ticks: { font: { size: 11 }, precision: 0 },
-                        },
-                        ...(hasML ? {
-                            y1: {
-                                position: 'right',
-                                beginAtZero: true,
-                                grid: { display: false },
-                                title: { display: true, text: 'mL', font: { size: 12 } },
-                                ticks: { font: { size: 11 }, precision: 0 },
-                            },
-                        } : {}),
-                    },
-                },
-            });
+            const hourCounts = new Array(24).fill(0);
+            times.forEach(t => hourCounts[t.getHours()]++);
+            renderHourlyChart(document.getElementById('hourly-chart'), hourCounts);
         }
     </script>
 </body>
