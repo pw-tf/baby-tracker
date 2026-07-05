@@ -118,8 +118,9 @@
                 <button class="range-btn" data-range="14d">14 days</button>
                 <button class="range-btn" data-range="30d">30 days</button>
             </div>
-            <div class="bars" style="height:88px" id="feed-chart"></div>
+            <div class="bars bars-tappable" style="height:88px" id="feed-chart"></div>
             <div class="legend" id="feed-legend" style="display:none"></div>
+            <div class="chart-detail" id="feed-chart-detail"></div>
         </section>
 
         <!-- Feeding insights -->
@@ -209,6 +210,7 @@
             if (!session) return;
             await initAppShell('feeding.html');
             setupRangeButtons();
+            setupChartTap();
             renderBurpSoundBtn();
             renderBurpDuration();
             await loadEntries();
@@ -932,6 +934,7 @@
                 days.push({
                     key: d.toLocaleDateString('en-CA'),
                     label: short ? d.toLocaleDateString('en-AU', { weekday: 'narrow' }) : String(d.getDate()),
+                    dateObj: new Date(d),
                 });
                 d.setDate(d.getDate() + 1);
             }
@@ -939,6 +942,8 @@
         }
 
         let chartEntries = [];
+        let dayDetail = [];
+        let selectedDayIdx = null;
 
         async function loadChart() {
             const userId = await getUserId();
@@ -966,17 +971,28 @@
             const el = document.getElementById('feed-chart');
             const legend = document.getElementById('feed-legend');
 
+            // Per-day breakdown, computed once and reused by both chart views
+            // and by the tap-to-reveal detail line below the chart.
+            dayDetail = days.map(d => {
+                const inDay = chartEntries.filter(e => new Date(e.start_time).toLocaleDateString('en-CA') === d.key);
+                const bottles = inDay.filter(e => e.feed_type === 'bottle');
+                return {
+                    label: d.label,
+                    dateObj: d.dateObj,
+                    bottles: bottles.length,
+                    ml: bottles.reduce((sum, b) => sum + (b.volume_ml || 0), 0),
+                    solids: inDay.filter(e => e.feed_type === 'solids').length,
+                };
+            });
+
             if (chartView === 'byType') {
-                const perDay = days.map(d => {
-                    const inDay = chartEntries.filter(e => new Date(e.start_time).toLocaleDateString('en-CA') === d.key);
-                    return {
-                        label: d.label,
-                        segs: [
-                            { value: inDay.filter(e => e.feed_type === 'bottle').length, color: 'var(--c-feed)' },
-                            { value: inDay.filter(e => e.feed_type === 'solids').length, color: 'color-mix(in srgb, var(--c-sleep) 60%, transparent)' },
-                        ],
-                    };
-                });
+                const perDay = dayDetail.map(d => ({
+                    label: d.label,
+                    segs: [
+                        { value: d.bottles, color: 'var(--c-feed)' },
+                        { value: d.solids, color: 'color-mix(in srgb, var(--c-sleep) 60%, transparent)' },
+                    ],
+                }));
                 renderStackedBarChart(el, perDay);
 
                 const bottle = chartEntries.filter(e => e.feed_type === 'bottle').length;
@@ -991,17 +1007,49 @@
                 legend.innerHTML = legendHtml;
                 legend.style.display = legendHtml ? 'flex' : 'none';
             } else {
-                // Total distinct sessions per day
-                const perDay = days.map(d => {
-                    const set = new Set();
-                    chartEntries.forEach(e => {
-                        if (new Date(e.start_time).toLocaleDateString('en-CA') === d.key) set.add(e.session_id || e.id);
-                    });
-                    return { value: set.size, label: d.label };
-                });
+                const perDay = dayDetail.map(d => ({ value: d.bottles + d.solids, label: d.label }));
                 renderBarChart(el, perDay);
                 legend.style.display = 'none';
             }
+
+            selectedDayIdx = dayDetail.length - 1;
+            applyDaySelection();
+        }
+
+        function setupChartTap() {
+            document.getElementById('feed-chart').addEventListener('click', (e) => {
+                const col = e.target.closest('.bar-col');
+                if (!col) return;
+                selectedDayIdx = Number(col.dataset.idx);
+                applyDaySelection();
+            });
+        }
+
+        function applyDaySelection() {
+            document.querySelectorAll('#feed-chart .bar-col').forEach(c => {
+                c.classList.toggle('selected', Number(c.dataset.idx) === selectedDayIdx);
+            });
+            renderDayDetail();
+        }
+
+        function renderDayDetail() {
+            const detailEl = document.getElementById('feed-chart-detail');
+            const d = dayDetail[selectedDayIdx];
+            if (!d) {
+                detailEl.textContent = '';
+                return;
+            }
+            const parts = [];
+            if (d.bottles > 0) {
+                parts.push(`<strong>${d.bottles}</strong> bottle${d.bottles === 1 ? '' : 's'}${d.ml > 0 ? ` · <strong>${d.ml}</strong> ml` : ''}`);
+            }
+            if (d.solids > 0) {
+                parts.push(`<strong>${d.solids}</strong> solid${d.solids === 1 ? '' : 's'}`);
+            }
+            const dateLabel = d.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+            detailEl.innerHTML = parts.length
+                ? `${dateLabel} — ${parts.join(' · ')}`
+                : `${dateLabel} — no feeds logged`;
         }
 
         function renderInsights() {
