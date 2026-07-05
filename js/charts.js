@@ -16,7 +16,7 @@ function renderBarChart(el, data, opts = {}) {
             ? `<div class="bar-fill${solid ? ' solid' : ''}" style="height:${Math.max(pct, 4)}%"></div>`
             : `<div class="bar-fill" style="height:3px;opacity:0.45"></div>`;
         return `
-            <div class="bar-col">
+            <div class="bar-col" data-idx="${i}">
                 ${bar}
                 <span class="bar-label">${showLabel ? d.label : ''}</span>
             </div>`;
@@ -45,7 +45,7 @@ function renderStackedBarChart(el, data) {
             }).reverse().join('') + `</div>`;
         }
         return `
-            <div class="bar-col">
+            <div class="bar-col" data-idx="${i}">
                 ${inner}
                 <span class="bar-label">${showLabel ? d.label : ''}</span>
             </div>`;
