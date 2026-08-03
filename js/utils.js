@@ -14,9 +14,25 @@ async function getUserId() {
     return user?.id;
 }
 
+// Per-device state that belongs to whoever is signed in — a running nap
+// timer, a burp timer, the name chosen in the intercom. Cleared on sign
+// out so the next account to use this device does not inherit it. The
+// theme is deliberately left alone; it is a display preference, not data.
+const SESSION_LOCAL_KEYS = [
+    'bt_baby_name',
+    'nap_timer_start',
+    'nap_timer_stop',
+    'burp_session',
+    'ic_name',
+];
+
 // Sign out
 async function signOut() {
     await sb.auth.signOut();
+    try {
+        SESSION_LOCAL_KEYS.forEach((key) => localStorage.removeItem(key));
+    } catch (_) {}
+    _userPrefs = null;
     window.location.href = 'login.html';
 }
 
@@ -166,6 +182,14 @@ async function loadUserPrefs(force = false) {
     }
     _userPrefs = data || {};
     return _userPrefs;
+}
+
+// The intercom is a live audio room. An account only gets access when
+// intercom_enabled is set on its preferences row, which is granted from
+// the Supabase dashboard — see sql/multi-user-setup.sql. Call
+// loadUserPrefs() first.
+function intercomEnabled() {
+    return !!(_userPrefs && _userPrefs.intercom_enabled);
 }
 
 async function saveUserPrefs(partial) {

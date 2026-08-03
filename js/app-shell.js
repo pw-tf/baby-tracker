@@ -1,20 +1,18 @@
 // App shell — top app bar (avatar · name · age · settings), bottom nav,
 // and the shared settings sheet. Every screen calls initAppShell(activePage).
 
-const BABY_NAME_KEY = 'bt_baby_name';
+// The baby's name lives in user_preferences so it belongs to the account
+// rather than the browser. This key is the old per-device location, kept
+// only long enough to migrate it once.
+const LEGACY_BABY_NAME_KEY = 'bt_baby_name';
 
 function getBabyName() {
-    try {
-        return localStorage.getItem(BABY_NAME_KEY) || 'Baby';
-    } catch (_) {
-        return 'Baby';
-    }
+    const name = _userPrefs && _userPrefs.baby_name;
+    return (name && name.trim()) || 'Baby';
 }
 
-function setBabyName(name) {
-    try {
-        localStorage.setItem(BABY_NAME_KEY, name);
-    } catch (_) {}
+async function setBabyName(name) {
+    return saveUserPrefs({ baby_name: name });
 }
 
 async function initAppShell(activePage) {
@@ -28,7 +26,35 @@ async function initAppShell(activePage) {
     });
 
     await loadUserPrefs();
+    await migrateLegacyBabyName();
+    applyIntercomVisibility();
     refreshAppBar();
+}
+
+// Move a name saved by an older version of the app into this account,
+// then drop the local copy so a later sign-in on this device cannot pick
+// up the previous account's baby name.
+async function migrateLegacyBabyName() {
+    let legacy = null;
+    try {
+        legacy = localStorage.getItem(LEGACY_BABY_NAME_KEY);
+    } catch (_) {
+        return;
+    }
+    if (!legacy) return;
+
+    if (!(_userPrefs && _userPrefs.baby_name)) {
+        const { error } = await setBabyName(legacy.trim());
+        if (error) return; // leave the local copy so the migration can retry
+    }
+    try {
+        localStorage.removeItem(LEGACY_BABY_NAME_KEY);
+    } catch (_) {}
+}
+
+function applyIntercomVisibility() {
+    const row = document.getElementById('settings-intercom-row');
+    if (row) row.style.display = intercomEnabled() ? '' : 'none';
 }
 
 function renderAppBar() {
@@ -86,7 +112,7 @@ function injectSettingsSheet() {
                 <span class="settings-row-label">Birth date</span>
                 <input type="datetime-local" class="form-input" id="settings-birthdate">
             </div>
-            <div class="settings-row">
+            <div class="settings-row" id="settings-intercom-row" style="display:none">
                 <span class="settings-row-label">Intercom</span>
                 <a href="intercom.html" class="pill-btn" style="text-decoration:none">${icon('radio')} Open</a>
             </div>
@@ -98,10 +124,15 @@ function injectSettingsSheet() {
     });
     document.body.appendChild(overlay);
 
-    document.getElementById('settings-name').addEventListener('change', (e) => {
+    document.getElementById('settings-name').addEventListener('change', async (e) => {
         const name = e.target.value.trim() || 'Baby';
-        setBabyName(name);
+        const { error } = await setBabyName(name);
+        if (error) {
+            showToast('Could not save name: ' + error.message, 'error');
+            return;
+        }
         refreshAppBar();
+        showToast('Name saved');
     });
 
     document.getElementById('settings-birthdate').addEventListener('change', async (e) => {

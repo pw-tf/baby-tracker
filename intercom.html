@@ -569,6 +569,7 @@
         initNav('intercom.html');
 
         // --- State ---
+        let myUserId = null;
         let myName = localStorage.getItem('ic_name') || '';
         let mode = 'ptt'; // 'ptt' or 'open'
         let isMuted = false;
@@ -608,6 +609,20 @@
         //  Init
         // ============================================================
         (async function init() {
+            const session = await requireAuth();
+            if (!session) return;
+            myUserId = session.user.id;
+
+            // The room is derived from the account id, so this page is
+            // useless without a session — but check access explicitly so
+            // an account that should not have the intercom cannot reach
+            // it by typing the URL.
+            await loadUserPrefs();
+            if (!intercomEnabled()) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
             // Check browser support
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showError('Your browser does not support microphone access. Please use a modern browser.');
@@ -770,7 +785,10 @@
             setStatus('waiting', 'Waiting for other person…');
             statusName.textContent = 'You are ' + myName;
 
-            channel = sb.channel('home-intercom', {
+            // One room per account. The old name was a single global room,
+            // which meant every account that opened this page joined the
+            // same live audio call.
+            channel = sb.channel('home-intercom-' + myUserId, {
                 config: { broadcast: { self: false }, presence: { key: myName } }
             });
 
